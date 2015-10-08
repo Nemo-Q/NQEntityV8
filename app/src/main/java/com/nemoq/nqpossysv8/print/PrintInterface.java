@@ -3,13 +3,11 @@ package com.nemoq.nqpossysv8.print;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.InvalidParameterException;
-import java.util.Calendar;
 
 import android_serialport_api.SerialPort;
 
@@ -26,7 +24,7 @@ public class PrintInterface {
     public InputStream inputStream;
     public byte[] dataToWrite;
 
-    private class SendData extends AsyncTask<byte[],Integer,Boolean> {
+    private class SendDataToPrinterTask extends AsyncTask<byte[],Void,Boolean > {
 
 
         @Override
@@ -36,24 +34,41 @@ public class PrintInterface {
 
             try {
 
-
-
-                outputStream.write(dataToWrite);
-                return true;
+                outputStream.write(byteData[0]);
 
 
 
 
             } catch (IOException e) {
                 e.printStackTrace();
-                return false;
+
+
             }
 
+
+            return true;
         }
     }
 
 
+    public void sendData(byte[] bytes) throws IOException {
 
+
+        outputStream.write(bytes);
+
+
+    }
+
+    public void printData(byte[] bytes){
+
+
+        SendDataToPrinterTask sendData = new SendDataToPrinterTask();
+        sendData.execute(bytes);
+
+
+
+
+    }
 
 
     public PrintInterface(){
@@ -80,27 +95,16 @@ public class PrintInterface {
     }
 
 
-    public byte[] writeData(byte[] bytes){
+    public void writeData(byte[] bytes) throws IOException {
 
 
-            dataToWrite = bytes;
 
-            SendData sendData = new SendData();
-            sendData.execute(bytes);
-
-            byte[]  bytesRead = new byte[8];
-            try {
-                inputStream.read(bytesRead);
-            }
-            catch (Exception e){
-
-                Log.e("InputStream error:", e.toString());
-
-            }
-            return bytesRead;
+        sendData(bytes);
 
 
     }
+
+
 
 
 
@@ -119,6 +123,7 @@ public class PrintInterface {
 
 			/* Open the serial port */
             serialPort = new SerialPort(myFile,baudrate,0,flagCon);
+
         }
         return serialPort;
     }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="notification_id">4123</integer>
+
+    <integer name="message_type_listen_started">0</integer>
+    <integer name="message_type_received_data">1</integer>
+    <integer name="message_type_listen_stopped">2</integer>
+    <integer name="message_type_weird_data">3</integer>
+</resources>

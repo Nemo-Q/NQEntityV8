@@ -8,4 +8,30 @@
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="title_activity_print">PrintActivity</string>
+    <string name="codepages_to_android">
+                IBM437:0:0
+                IBM850:2:0
+                IBM860:3:0
+                IBM863:4:0
+                IBM865:5:0
+                ISO-8859-1:6:0
+                IBM775:9:0
+                IBM857:13:0
+                x-IBM737:14:0
+                ISO-8859-7:15:0
+                windows-1252:16:0
+                IBM866:17:0
+                IBM852:18:0
+                IBM00858:19:0
+                x-iso-8859-11:21:0
+                IBM775:33:0
+                IBM855:34:0
+                IBM862:36:1
+                cp864:37:1
+                windows-1251:46:0
+                windows-1253:47:0
+                windows-1254:48:0
+                windows-1255:49:1
+                windows-1256:50:1
+                windows-1257:51:0</string>
 </resources>
