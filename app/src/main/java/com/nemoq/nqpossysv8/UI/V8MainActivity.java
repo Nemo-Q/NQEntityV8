@@ -1,18 +1,24 @@
-package com.nemoq.nqpossysv8;
+
+package com.nemoq.nqpossysv8.UI;
 
 import android.app.Activity;
-import android.app.Application;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+import android.support.v4.content.LocalBroadcastManager;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.webkit.WebView;
 import android.widget.Button;
+import android.widget.ImageButton;
 
-import com.nemoq.nqpossysv8.NetworkHandling.NetworkService;
-import com.nemoq.nqpossysv8.print.BitmapTranslator;
+import com.android.volley.AuthFailureError;
+import com.nemoq.nqpossysv8.NetworkHandling.RequestAdapter;
+import com.nemoq.nqpossysv8.NetworkHandling.SOAPWriter;
+import com.nemoq.nqpossysv8.R;
 import com.nemoq.nqpossysv8.print.PrintApplication;
 import com.nemoq.nqpossysv8.print.PrintInterface;
 import com.nemoq.nqpossysv8.print.ReceiptParser;
@@ -23,13 +29,15 @@ import org.xmlpull.v1.XmlPullParserException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.util.SortedMap;
 
 import android_serialport_api.SerialPort;
 
 
-public class V8Activity extends Activity {
+/**
+ * Created by Martin Backudd on 2015-08-14. Main Activity for the app.
+ */
+
+public class V8MainActivity extends Activity {
 
 
 
@@ -38,6 +46,9 @@ public class V8Activity extends Activity {
     protected OutputStream mOutputStream;
     public PrintInterface printInterface;
     public ReceiptParser receiptParser;
+    private RequestAdapter requestAdapter;
+
+
 
 
     @Override
@@ -48,6 +59,9 @@ public class V8Activity extends Activity {
 
         printInterface = new PrintInterface();
         receiptParser = new ReceiptParser(this);
+
+        requestAdapter = RequestAdapter.getInstance(this);
+
 
         hideSystemUI();
         try {
@@ -64,8 +78,7 @@ public class V8Activity extends Activity {
         xmlPrint.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
 
-                InputStream fs = getResources().openRawResource(R.raw.abd);
-
+                InputStream fs = getResources().openRawResource(R.raw.test);
 
 
                 try {
@@ -76,12 +89,12 @@ public class V8Activity extends Activity {
 
                     printInterface.writeData(bytes);
 
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (XmlPullParserException e) {
                     e.printStackTrace();
                 }
-
             }
             });
 
@@ -89,6 +102,65 @@ public class V8Activity extends Activity {
 
     }
 
+
+    float historicalX;
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+
+
+        if(event.getAction() == MotionEvent.ACTION_DOWN){
+            historicalX = event.getX();
+
+        }
+        else if(event.getAction() == MotionEvent.ACTION_UP){
+            historicalX = 0;
+
+
+        }
+
+        else {
+            ImageButton settingsButton = (ImageButton) findViewById(R.id.settingsButton);
+
+            if (historicalX >= settingsButton.getX()) {
+
+                settingsButton.setOnClickListener(new View.OnClickListener() {
+                                                      public void onClick(View v) {
+                                                          showSettings();
+
+
+                                                      }
+                                                  });
+
+
+                Animation slideIn = AnimationUtils.loadAnimation(this, R.anim.slidein);
+
+                settingsButton.startAnimation(slideIn);
+                settingsButton.setVisibility(View.VISIBLE);
+            }
+        }
+
+        return super.onTouchEvent(event);
+    }
+
+
+    private void showSettings(){
+
+
+        Intent intent = new Intent(this, SettingsActivity.class);
+
+        startActivityForResult(intent, 0);
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(this);
+        localBroadcastManager.sendBroadcast(new Intent("prefs_updated"));
+
+
+    }
 
     private void hideSystemUI() {
         // Set the IMMERSIVE flag.

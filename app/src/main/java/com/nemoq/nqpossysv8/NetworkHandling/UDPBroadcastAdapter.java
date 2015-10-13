@@ -2,9 +2,11 @@ package com.nemoq.nqpossysv8.NetworkHandling;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.DhcpInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.io.IOException;
@@ -27,10 +29,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Created by Martin on 2015-09-29.
+ * Created by Martin Backudd on 2015-09-29. //Sending udp broadcast to ease the connection between ticket editor.
  */
 public class UDPBroadcastAdapter  {
-
 
 
     private  ScheduledExecutorService threadPoolExecutor;
@@ -39,19 +40,24 @@ public class UDPBroadcastAdapter  {
 
     String connection;
     int port;
-    int SERVER_PORT = 8080;
+    private int servport;
     Context context;
     DatagramSocket datagramSocket;
     InetAddress ipAddresses;
 
 
     public UDPBroadcastAdapter(int p,Context cont) throws SocketException, UnknownHostException {
-
-
         context = cont;
-        connection = "Nemo-Q Entity 8," +  listIp() + ":" + Integer.toString(8080);
 
-        port = p;
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+
+
+        port = Integer.parseInt(sharedPreferences.getString("udp_port","8000"));
+        servport = p;
+
+
+        String name = sharedPreferences.getString("device_name","Entity V8");
+        connection = name + "," +  listIp() + ":" + Integer.toString(servport);
 
         broadcastTimer = new Timer();
 
@@ -70,19 +76,11 @@ public class UDPBroadcastAdapter  {
 
         datagramSocket.setBroadcast(true);
 
-
     }
-
-
-
 
     public void startBroadcast(){
 
-
         threadPoolExecutor = Executors.newScheduledThreadPool(5);
-
-
-
         threadPoolExecutor.scheduleAtFixedRate(new Runnable() {
             @Override
            public void run(){
@@ -97,25 +95,11 @@ public class UDPBroadcastAdapter  {
 
 
             }},0,15,TimeUnit.SECONDS);
-
-
-
     }
 
 
     public void stopBroadcast(){
-
-
-
-
-
         threadPoolExecutor.shutdown();
-
-
-
-
-
-
     }
 
 
@@ -143,34 +127,13 @@ public class UDPBroadcastAdapter  {
 
     }
 
-
-
-
-
     private void sendUDP(int port,byte[] bytes) throws IOException {
-
-
-
-
-
 
         DatagramPacket datagramPacket = new DatagramPacket(bytes,bytes.length,ipAddresses,port);
 
         datagramSocket.send(datagramPacket);
 
 
-
-
-
-
-
-
     }
-
-
-
-
-
-
 
 }

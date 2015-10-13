@@ -7,7 +7,7 @@ import java.security.InvalidParameterException;
 import android_serialport_api.SerialPort;
 
 /**
- * Created by Temporär on 2015-08-14.
+ * Created by Martin Backudd on 2015-08-14.
  */
 public class PrintApplication extends android.app.Application {
     private SerialPort mSerialPort = null;

@@ -14,7 +14,7 @@ import android.util.Log;
 import java.lang.reflect.Type;
 
 /**
- * Created by Temporär on 2015-08-14.
+ * Created by Martin Backudd on 2015-08-14. Makes a portable bitmap out of a bitmap and or Text that represent the queuenumber.
  */
 public class BitmapTranslator {
 

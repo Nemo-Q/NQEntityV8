@@ -1,7 +1,9 @@
 package com.nemoq.nqpossysv8.NetworkHandling;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -37,7 +39,7 @@ import org.xmlpull.v1.XmlPullParserException;
 
 
 /**
- * Created by Martin on 2015-09-01.
+ * Created by Martin Backudd on 2015-09-01. Accepts incoming connections ex. http
  */
 public class SocketThreadClass implements Runnable{
 
@@ -54,33 +56,51 @@ public class SocketThreadClass implements Runnable{
     private static int WEIRD_DATA = 3;
     private static int ACCEPTED_CONNECTION = 4;
 
-    private static int SERVER_PORT = 8080;
+    private int serverPort;
 
     private static long TIMEOUT_INTERVAL = 30000;
 
 
+    private static SocketThreadClass socketThreadClass;
+
     private ArrayList<Socket> connectionList;
 
 
-    public SocketThreadClass(Handler handler,Context ctx){
+    private SocketThreadClass(Context ctx,Handler handler){
 
         messageHandler = handler;
         running = true;
         acceptConnections = true;
 
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(ctx);
+        serverPort = Integer.parseInt(sharedPreferences.getString("listen_port","8080"));
+
+
         context = ctx;
     }
-
 
     public void stopListener(){
 
 
         running = false;
-
-
+        socketThreadClass = null;
 
     }
 
+
+     public static synchronized SocketThreadClass getInstance(Context ctx,Handler handler){
+
+
+        if (socketThreadClass == null){
+
+
+            socketThreadClass = new SocketThreadClass(ctx,handler);
+
+        }
+
+         return socketThreadClass;
+
+    }
 
 
     private String listIp(){
@@ -117,8 +137,8 @@ public class SocketThreadClass implements Runnable{
         try {
 
 
-            ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
-            sendMessage(LISTEN_STARTED,"Listening to port:"+SERVER_PORT);
+            ServerSocket serverSocket = new ServerSocket(serverPort);
+            sendMessage(LISTEN_STARTED,"Listening to port:"+serverPort);
 
             while (running) {
 
@@ -173,18 +193,6 @@ public class SocketThreadClass implements Runnable{
 
                 }
 
-
-
-
-
-
-
-
-
-
-
-
-
         } catch (UnknownHostException e) {
             Log.e("Connection error:", e.toString());
             e.printStackTrace();
@@ -207,15 +215,6 @@ public class SocketThreadClass implements Runnable{
         OutputStream os = socket.getOutputStream();
         String response = HttpParser.makeHttpResponse(message);
         os.write(response.getBytes(Charset.forName("UTF-8")));
-
-
-
-
-
-
-
-
-
 
     }
 
@@ -266,19 +265,12 @@ public class SocketThreadClass implements Runnable{
 
                 }
 
-
-
                 httpTable = httpParser.getTable();
-
-
 
                 return httpTable;
 
 
             }
-
-
-
 
 
         } catch (IOException e) {
@@ -292,8 +284,6 @@ public class SocketThreadClass implements Runnable{
     }
 
 
-
-
     private void sendMessage(int type,Object obj){
 
 
@@ -302,8 +292,6 @@ public class SocketThreadClass implements Runnable{
             message.obj = obj;
             message.setTarget(messageHandler);
             message.sendToTarget();
-
-
 
     }
 

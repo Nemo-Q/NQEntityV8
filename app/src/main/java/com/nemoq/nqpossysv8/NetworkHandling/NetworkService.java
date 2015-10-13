@@ -4,81 +4,101 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.*;
 import android.os.Handler;
+import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.nemoq.nqpossysv8.R;
-import com.nemoq.nqpossysv8.V8Activity;
+import com.nemoq.nqpossysv8.UI.V8MainActivity;
 import com.nemoq.nqpossysv8.print.PrintInterface;
 
 import java.io.IOException;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class NetworkService extends Service {
-
 
     private NotificationManager notificationManager;
 
     private PrintInterface printInterface;
-    private Handler messageHandler;
+    private static Handler messageHandler;
     private UDPBroadcastAdapter udpBroadcastAdapter;
-
-
+    private SocketThreadClass socketThreadClass;
+    private Thread socketThreadInstance;
     //Starts service to listen for incoming http posts.
+
+
+
+
+    static final int  LISTEN_STARTED = 0;
+    static final int  RECEIVED_DATA = 1;
+    static final int  LISTEN_STOPPED = 2;
+    static final int  WRONG_FORMAT = 3;
+
+
+
 
     public NetworkService() {
 
 
-            printInterface = new PrintInterface();
 
-            messageHandler = new Handler(Looper.getMainLooper()){
-                @Override
-                public void handleMessage(Message msg) {
+        printInterface = new PrintInterface();
 
-                    switch (msg.what){
-                        case 0:
-                            //Started listening
-                            Log.i("NetworkService:",(String)msg.obj);
-                            break;
-                        case 1:
-                            //Received data from HTTP post
-                            byte[] printBytes = (byte[])msg.obj;
-                            Log.i("NetWorkService:", "Printing");
+        //Communication from the SocketThread
+        messageHandler = new Handler(Looper.getMainLooper()){
+            @Override
+            public void handleMessage(Message msg) {
+
+                switch (msg.what){
+                    case LISTEN_STARTED:
+                        //Started listening
+                        Log.i("NetworkService:",(String)msg.obj);
+                        break;
+                    case RECEIVED_DATA:
+                        //Received data from HTTP post
+                        byte[] printBytes = (byte[])msg.obj;
+                        Log.i("NetWorkService:", "Printing");
 
 
-                            try {
-                                print(printBytes);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                            break;
-                        case 2:
-                            //Stopped listening
-                            Log.i("NetworkService:",(String)msg.obj);
-                            break;
-                        case 3:
-                            //Weird http body
-                            Log.i(" NetworkService: ",(String)msg.obj);
-                            break;
-                        case 4:
+                        try {
+                            print(printBytes);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case LISTEN_STOPPED:
+                        //Stopped listening
+                        Log.i("NetworkService:",(String)msg.obj);
+                        break;
+                    case WRONG_FORMAT:
+                        //Weird http body
+                        Log.i(" NetworkService: ",(String)msg.obj);
+                        break;
 
-                            break;
-
-                    }
-
-                    super.handleMessage(msg);
                 }
-            };
+
+                super.handleMessage(msg);
+            }
+        };
 
 
     }
+
 
 
     public class LocalBinder extends Binder {
@@ -102,10 +122,29 @@ public class NetworkService extends Service {
         Log.i("LocalService", "Received start id " + startId + ": " + intent);
         Toast.makeText(this,"Nemo-Q service started",Toast.LENGTH_SHORT).show();
 
+        BroadcastReceiver bReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                restartListen();
+            }
+        };
 
-        //starts a thread to listen for incoming http posts.
-        if (checkConnectivity()){
-            startListenForHttp();
+        LocalBroadcastManager receiver = LocalBroadcastManager.getInstance(this);
+        receiver.registerReceiver(bReceiver, new IntentFilter("prefs_updated"));
+
+
+
+
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean receiveLan = sharedPreferences.getBoolean("receive", true);
+
+
+
+
+
+        //starts a thread to listen for  http.
+        if (checkConnectivity() && receiveLan){
+            startListen();
         }
         else {
             Toast.makeText(this,"No Connectivity",Toast.LENGTH_SHORT).show();
@@ -146,7 +185,7 @@ public class NetworkService extends Service {
 
         // The PendingIntent to launch our activity if the user selects this notification
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-                new Intent(getBaseContext(), V8Activity.class), 0);
+                new Intent(getBaseContext(), V8MainActivity.class), 0);
 
         // Set the info for the views that show in the notification panel.
         Notification notification = new Notification.Builder(this)
@@ -169,7 +208,7 @@ public class NetworkService extends Service {
                 getSystemService(CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
         if (networkInfo != null && networkInfo.isConnected()) {
-            broadCastConnection(5000);
+
             return true;
         } else {
 
@@ -182,15 +221,43 @@ public class NetworkService extends Service {
     }
 
 
+    //Restart the socket that listens to connections
+    private void restartListen(){
+
+
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean receiveLan = sharedPreferences.getBoolean("receive", false);
+        stopListen();
+
+        if (checkConnectivity() && receiveLan) {
+
+            startListen();
+        }
+
+    }
+
+
     //Starting the thread
-    private void startListenForHttp(){
+    public void startListen(){
+
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String listenPortPreference = sharedPreferences.getString("listen_port", "8080");
+        broadCastConnection(Integer.parseInt(listenPortPreference));
+        socketThreadClass = SocketThreadClass.getInstance(this.getApplicationContext(), messageHandler);
+        socketThreadInstance = new Thread(socketThreadClass);
+
+        socketThreadInstance.start();
 
 
 
-        SocketThreadClass socketThreadClass = new SocketThreadClass(messageHandler,this.getApplicationContext());
-        Thread socketThread = new Thread(socketThreadClass);
-        socketThread.start();
+    }
 
+    public void stopListen(){
+
+
+        socketThreadClass.stopListener();
+        udpBroadcastAdapter.stopBroadcast();
+        socketThreadInstance.interrupt();
 
 
     }
@@ -200,7 +267,7 @@ public class NetworkService extends Service {
 
 
         try {
-            udpBroadcastAdapter= new UDPBroadcastAdapter(5000,this.getApplicationContext());
+            udpBroadcastAdapter= new UDPBroadcastAdapter(port,this.getApplicationContext());
         } catch (SocketException e) {
             Log.e("UDP error:", e.toString());
         } catch (UnknownHostException e) {
@@ -217,6 +284,7 @@ public class NetworkService extends Service {
 
 
     private void print(byte[] printerBytes) throws IOException {
+
 
 
            printInterface.writeData(printerBytes);

@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Created by Martin on 2015-09-04.
+ * Created by Martin Backudd on 2015-09-04. Parses Http and puts it in a table
  */
 public class HttpParser {
 

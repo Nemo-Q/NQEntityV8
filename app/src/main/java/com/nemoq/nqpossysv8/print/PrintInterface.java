@@ -12,12 +12,15 @@ import java.security.InvalidParameterException;
 import android_serialport_api.SerialPort;
 
 /**
- * Created by Temporär on 2015-08-17.
+ * Created by Martin Backudd on 2015-08-17. Takes the parsed bytes that receiptparser made and prints them with the V8's print API
  */
 
 public class PrintInterface {
 
 
+
+
+    private PrintInterface printInterface;
 
     private SerialPort serialPort;
     public OutputStream outputStream;
@@ -26,36 +29,24 @@ public class PrintInterface {
 
     private class SendDataToPrinterTask extends AsyncTask<byte[],Void,Boolean > {
 
-
         @Override
         protected Boolean doInBackground(byte[]... byteData) {
-
-
 
             try {
 
                 outputStream.write(byteData[0]);
 
-
-
-
             } catch (IOException e) {
                 e.printStackTrace();
 
-
             }
-
 
             return true;
         }
     }
 
-
     public void sendData(byte[] bytes) throws IOException {
-
-
         outputStream.write(bytes);
-
 
     }
 
@@ -65,11 +56,7 @@ public class PrintInterface {
         SendDataToPrinterTask sendData = new SendDataToPrinterTask();
         sendData.execute(bytes);
 
-
-
-
     }
-
 
     public PrintInterface(){
 
@@ -91,25 +78,13 @@ public class PrintInterface {
                 Log.e("Error:","Configure");
             }
 
-
     }
-
 
     public void writeData(byte[] bytes) throws IOException {
 
-
-
         sendData(bytes);
 
-
     }
-
-
-
-
-
-
-
 
     public SerialPort getSerialPort() throws SecurityException, IOException, InvalidParameterException
     {
