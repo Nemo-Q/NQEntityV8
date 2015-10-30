@@ -1,4 +1,42 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        android:summary="Service Settings"
+        android:title="Service Settings"
+        >
+        <CheckBoxPreference
+        android:key="@string/pref_key_kiosk"
+        android:title="Kiosk Mode"
+        android:summary="Disable the navigation bar\nNeeds device restart to take effect"
+        android:defaultValue="False" />
+        <CheckBoxPreference
+            android:key="@string/pref_key_boot"
+            android:title="Launch on Boot"
+            android:summary="Start the App when the device boots"
+            android:defaultValue="True" />
 
-
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:summary="Navigation"
+        android:title="Device Control">
+    <Preference android:title="Close"
+                android:key="@string/pref_key_close"/>
+        <Preference android:title="Home"
+            android:key="@string/pref_key_quit"
+            />
+        />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:summary="Security"
+        android:title="Security">
+        <EditTextPreference android:title="App Pin"
+            android:key="@string/pref_key_pin"
+            android:defaultValue="2244"
+            android:selectAllOnFocus="true"
+            android:inputType="number"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:maxLength="4"
+            />
+        />
+    </PreferenceCategory>
 </PreferenceScreen>

@@ -156,9 +156,9 @@ public class SocketThreadClass implements Runnable{
 
                     // Make printer bytes from the xml string
 
-                    ReceiptParser receiptParser = new ReceiptParser(context);
+
                     if (table != null && Integer.parseInt(table.get("Content-Length")) > 0) {
-                        printBytes = receiptParser.xmlStringToPrinterCommand(table.get("Body"));
+                        printBytes = ReceiptParser.getInstance(context).xmlStringToPrinterCommand(table.get("Body"));
 
 
                         //How did it go?
@@ -170,12 +170,8 @@ public class SocketThreadClass implements Runnable{
 
                         } else if (printBytes == null) {
                             //Bad formatting from the receipt parser
-                            sendMessage(WEIRD_DATA, "Bad xml");
-                            sendResponse(socket, "Bad formatting of xml");
-                        } else if (table == null) {
-
-                            sendMessage(WEIRD_DATA, "Couldnt receive HTTP   ");
-
+                            sendMessage(WEIRD_DATA, "Bad Format");
+                            sendResponse(socket, "Bad formatting");
                         } else {
                             //All good lets print
                             sendMessage(RECEIVED_DATA, printBytes);
@@ -188,6 +184,7 @@ public class SocketThreadClass implements Runnable{
 
 
                     }
+
                     socket.close();
 
 
@@ -240,7 +237,7 @@ public class SocketThreadClass implements Runnable{
                 byte[] buffer = new byte[8192];
                 HttpParser httpParser = new HttpParser();
 
-                int bytesRead = 0;
+                int bytesRead;
                 byte[] bytes;
                 long startTime = System.currentTimeMillis();
 
@@ -264,6 +261,7 @@ public class SocketThreadClass implements Runnable{
 
 
                 }
+
 
                 httpTable = httpParser.getTable();
 

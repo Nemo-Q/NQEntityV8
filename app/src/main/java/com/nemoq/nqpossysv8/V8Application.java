@@ -6,17 +6,16 @@ import android.content.Intent;
 import com.nemoq.nqpossysv8.NetworkHandling.NetworkService;
 
 /**
- * Created by Martin on 2015-09-10.
+ * Created by Martin Backudd on 2015-09-10. App start, runs service for listening and printing.
  */
 public class V8Application extends Application {
 
-    private Intent networkServiceIntent;
 
     @Override
     public void onCreate() {
 
 
-        networkServiceIntent = new Intent(getApplicationContext(), NetworkService.class);
+        Intent networkServiceIntent = new Intent(getApplicationContext(), NetworkService.class);
         startService(networkServiceIntent);
 
         super.onCreate();

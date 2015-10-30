@@ -14,36 +14,58 @@ import android.util.Log;
 import java.lang.reflect.Type;
 
 /**
- * Created by Martin Backudd on 2015-08-14. Makes a portable bitmap out of a bitmap and or Text that represent the queuenumber.
+ * Created by Martin Backudd on 2015-08-14.
+ * Makes a portable bitmap out of a bitmap and or Text that represent the queuenumber.
  */
 public class BitmapTranslator {
 
-    static int DOTS_PER_SEGMENT = 8;
+    private static int DOTS_PER_SEGMENT = 8;
 
-    private byte[] portableBitmap;
-
-    public boolean scaled;
-
+    private static BitmapTranslator bitmapTranslator;
     /**
      Makes a PBM out of a bitmap.
-     @return Returns the portable bitmap byte array.
-     @throws
+     @ Returns the portable bitmap byte array.
+
      */
-    public BitmapTranslator(){
+    private BitmapTranslator(){
 
 
 
 
     }
 
+    public static synchronized  BitmapTranslator getInstance(){
+
+
+            if (bitmapTranslator == null){
+
+                bitmapTranslator = new BitmapTranslator();
+
+            }
+
+        return bitmapTranslator;
+
+
+
+    }
+
+
+    class BitmapException extends Exception
+    {
+        public BitmapException(String message)
+        {
+            super(message);
+        }
+    }
+
 
     //Make a bitmap out of the text that will represent the queuenumber.
-    public byte[] textToPBM(String font,int size,int bold,int underline,String characters,boolean scaling,int flipped){
+    public static byte[] textToPBM(String font,int size,boolean bold,boolean underline,String characters,boolean scaling,boolean flipped){
 
 
 
 
-        Typeface typeFace = Typeface.create(Typeface.DEFAULT,Typeface.BOLD);
+        Typeface typeFace = Typeface.create(Typeface.DEFAULT,bold ? Typeface.BOLD : Typeface.NORMAL);
         Paint textPaint = new Paint();
 
         textPaint.setColor(Color.BLACK);
@@ -72,18 +94,9 @@ public class BitmapTranslator {
 
         canvas.drawPaint(backgroundPaint);
 
-
         canvas.drawText(characters, bounds.left * -1, bounds.top * -1, textPaint);
 
         canvas.drawBitmap(textBitmap, 0, 0, textPaint);
-
-
-
-
-
-
-
-
 
         return getPortableBitmap(textBitmap,scaling,flipped);
 
@@ -92,17 +105,17 @@ public class BitmapTranslator {
     }
 
     //Make a bitmap out of the base64 string
-    public byte[] base64ToPBM(String base64Image,boolean scale,int flipped){
+    public static byte[] base64ToPBM(String base64Image,boolean scale,boolean flipped) throws BitmapException{
 
         byte[] base64Bytes = Base64.decode(base64Image, Base64.DEFAULT);
 
         Bitmap bitmap = BitmapFactory.decodeByteArray(base64Bytes, 0, base64Bytes.length);
-        if (bitmap == null) {
+      /*  if (bitmap == null) {
 
-            Log.e("BitmapTranslator:", "Couldn't make bitmap out of base64");
 
-            return null;
-        }
+            //throw new BitmapException("Couldn't make bitmap out of base64");
+
+        }*/
 
         return getPortableBitmap(bitmap,scale,flipped);
 
@@ -112,17 +125,17 @@ public class BitmapTranslator {
 
 
 
-    public byte[] getPortableBitmap(Bitmap bitmap,boolean scale,int flipped){
+    public static byte[] getPortableBitmap(Bitmap bitmap,boolean scale,boolean flipped){
 
 
         byte[] PBM = makePBM(makeBitArray(bitmap,flipped),bitmap,scale);
-
+        bitmap.recycle();
         return PBM;
 
     }
 
     //Read all the pixels, and make 1 bit depth bitmap. -1 is white lower is black.
-    private byte[] makeBitArray(Bitmap bitmap,int flipped){
+    private static byte[] makeBitArray(Bitmap bitmap,boolean flipped){
 
 
         int[] pixels = new int[bitmap.getWidth() * bitmap.getHeight()];
@@ -132,9 +145,10 @@ public class BitmapTranslator {
 
         bitmap.getPixels(pixels, 0, xPixels, 0, 0, xPixels, yPixels);
 
+
         byte[] bitArray = new byte[pixels.length];
 
-        if (flipped == 0) {
+        if (!flipped) {
             for (int i = pixels.length-1; i > -1; i--) {
 
                 bitArray[pixels.length-1-i] = (pixels[i] < -1000000) ? (byte) 1 : (byte) 0;
@@ -156,7 +170,7 @@ public class BitmapTranslator {
 
 
     //read out the 1-bit bitmap and translate to portable-bitmap and the corresponding combination for the printer.
-    private byte[] makePBM(byte[] bitArray,Bitmap bitmap,boolean scale){
+    private static byte[] makePBM(byte[] bitArray,Bitmap bitmap,boolean scale){
 
 
 
@@ -238,7 +252,7 @@ public class BitmapTranslator {
 
     //Every 8 bit segment is described by 2 byte hex. (10001000) -> (*----*----)
 
-    private byte pixelToDotByte(int segmentIndex){
+    private static byte pixelToDotByte(int segmentIndex){
 
 
         byte segmentByte = 0x0;

@@ -120,17 +120,21 @@ public class NetworkService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("LocalService", "Received start id " + startId + ": " + intent);
-        Toast.makeText(this,"Nemo-Q service started",Toast.LENGTH_SHORT).show();
-
-        BroadcastReceiver bReceiver = new BroadcastReceiver() {
+        Toast.makeText(this, "Nemo-Q service started", Toast.LENGTH_SHORT).show();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(getApplicationContext().getString(R.string.broadcast_app_shutdown));
+        intentFilter.addAction(getApplicationContext().getString(R.string.broadcast_restart_listen));
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                restartListen();
+                    if (intent.getAction().equals("ACTION_SHUTDOWN"))
+                        stopSelf();
+                    else if (intent.getAction().equals(getApplicationContext().getString(R.string.broadcast_restart_listen)))
+                        restartListen();
             }
-        };
+        },intentFilter);
 
-        LocalBroadcastManager receiver = LocalBroadcastManager.getInstance(this);
-        receiver.registerReceiver(bReceiver, new IntentFilter("prefs_updated"));
+
 
 
 

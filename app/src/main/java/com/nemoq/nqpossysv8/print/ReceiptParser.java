@@ -1,6 +1,7 @@
 package com.nemoq.nqpossysv8.print;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.util.JsonReader;
 import android.util.Log;
 import android.util.Xml;
 import com.nemoq.nqpossysv8.R;
@@ -10,6 +11,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,7 +32,7 @@ public class ReceiptParser {
     private int lastUnderLine = -1;
     private int[] lastFontSize = {-1,-1};
 
-    private int ticketFlipped = -1;
+    private boolean ticketFlipped = false;
     private int ticketMargin = -1;
     private int ticketWidth = -1;
     private int codePage = -1;
@@ -37,6 +41,9 @@ public class ReceiptParser {
 
     private Charset charset;
     private boolean charReversed;
+
+    private static ReceiptParser receiptParser;
+
 
     /*int CP_PC437_STANDARD_EUROPE = 0;
     int CP_KATAKANA = 1;
@@ -73,11 +80,26 @@ public class ReceiptParser {
 
     public List<Byte> byteList;
 
-     public ReceiptParser(Context ctx){
+     private ReceiptParser(Context ctx){
 
                 context = ctx;
 
      }
+
+    public static synchronized ReceiptParser getInstance(Context ctx){
+
+
+            if (receiptParser == null){
+
+                receiptParser = new ReceiptParser(ctx);
+
+
+            }
+
+        return receiptParser;
+
+    }
+
 
     public byte[] testXml(InputStream inputStream) throws IOException, XmlPullParserException {
 
@@ -86,13 +108,50 @@ public class ReceiptParser {
         return bytes;
 
     }
+    public byte[] testJson(InputStream inputStream) {
+
+
+        try {
+            return jsonToPrinterBytes(inputStream);
+        } catch (IOException e) {
+           e.printStackTrace();
+            return null;
+        }
+        finally {
+            lastAlignment = -1;
+            lastBold = -1;
+            lastLineSpace = -1;
+            lastCharacterSpace = -1;
+            lastUnderLine = -1;
+            lastFontSize = new int[]{-1,-1};
+        }
+    }
+
+    public byte[] JSONToPrinterCommand(String jsonString){
+
+
+        try {
+            return jsonToPrinterBytes(new ByteArrayInputStream(jsonString.getBytes()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        finally {
+            lastAlignment = -1;
+            lastBold = -1;
+            lastLineSpace = -1;
+            lastCharacterSpace = -1;
+            lastUnderLine = -1;
+            lastFontSize = new int[]{-1,-1};
+        }
+
+        return null;
+    }
 
     public byte[] xmlStringToPrinterCommand(String xmlString) {
 
         try {
-            InputStream inputStream = new ByteArrayInputStream(xmlString.getBytes());
-            byte[] bytes = xmlToPrinterBytes(inputStream);
-            return bytes;
+
+            return xmlToPrinterBytes(new ByteArrayInputStream(xmlString.getBytes()));
         } catch (XmlPullParserException e) {
             Log.e("Xml parse error: ", e.toString());
             e.printStackTrace();
@@ -102,6 +161,14 @@ public class ReceiptParser {
             e.printStackTrace();
             return null;
         }
+        finally {
+            lastAlignment = -1;
+            lastBold = -1;
+            lastLineSpace = -1;
+            lastCharacterSpace = -1;
+            lastUnderLine = -1;
+            lastFontSize = new int[]{-1,-1};
+        }
     }
 
     /**
@@ -110,11 +177,11 @@ public class ReceiptParser {
      @return
      @throws
      */
-    private byte[] makeRaster(Bitmap bitmap,boolean scaled,int flipped){
+    private static byte[] makeRaster(Bitmap bitmap,boolean scaled,boolean flipped){
 
-        BitmapTranslator bitmapTranslator = new BitmapTranslator();
+        //BitmapTranslator bitmapTranslator = new BitmapTranslator();
 
-        byte[] bytes = bitmapTranslator.getPortableBitmap(bitmap, scaled, flipped);
+        byte[] bytes = BitmapTranslator.getInstance().getPortableBitmap(bitmap, scaled, flipped);
 
         return bytes;
 
@@ -125,10 +192,10 @@ public class ReceiptParser {
      @return
      @throws
      */
-    private byte[] makeQueueRaster(String font,int size,int bold,int underline,String characters,boolean scaled,int flipped){
+    private static byte[] makeBigTextRaster(String font,int size,boolean bold,boolean underline,String characters,boolean scaled,boolean flipped){
 
-        BitmapTranslator bitmapTranslator = new BitmapTranslator();
-        byte[] queueRaster = bitmapTranslator.textToPBM(font, size, bold, underline, characters, scaled, flipped);
+       // BitmapTranslator bitmapTranslator = new BitmapTranslator();
+        byte[] queueRaster = BitmapTranslator.getInstance().textToPBM(font, size, bold, underline, characters, scaled, flipped);
 
         return queueRaster;
 
@@ -143,10 +210,15 @@ public class ReceiptParser {
       * @param base64Image encoded image to 1-bit bitmap.
      * @param
      */
-    private byte[] makeRasterFromBase64(String base64Image, int flipped){
+    private static byte[] makeRasterFromBase64(String base64Image, boolean flipped){
 
-        BitmapTranslator bitmapTranslator = new BitmapTranslator();
-        byte[] decodedPBM =  bitmapTranslator.base64ToPBM(base64Image, true, flipped);
+        //BitmapTranslator bitmapTranslator = new BitmapTranslator();
+        byte[] decodedPBM = new byte[0];
+        try {
+            decodedPBM = BitmapTranslator.getInstance().base64ToPBM(base64Image, true, flipped);
+        } catch (BitmapTranslator.BitmapException e) {
+            e.printStackTrace();
+        }
 
         return decodedPBM;
 
@@ -154,7 +226,7 @@ public class ReceiptParser {
     }
 
 
-    private byte[] setIndent(int numchar){
+    private static byte[] setIndent(int numchar){
 
 
 
@@ -168,7 +240,7 @@ public class ReceiptParser {
 
     }
 
-    private byte[] setRelativePosition(int numdot){
+    private static byte[] setRelativePosition(int numdot){
 
 
 
@@ -182,7 +254,7 @@ public class ReceiptParser {
 
     }
 
-    private byte[] selectCharacterFont(int param){
+    private static byte[] selectCharacterFont(int param){
 
         byte[] bytes = {0x1B,0x4D,(byte)param};
 
@@ -191,7 +263,7 @@ public class ReceiptParser {
     }
 
 
-    public byte[] setPrintWidth(int width){
+    public static byte[] setPrintWidth(int width){
 
         int nL=(byte)(width%256);
         int nH=(byte)(width/256);
@@ -200,7 +272,7 @@ public class ReceiptParser {
 
     }
 
-    public byte[] setLeftMargin(int length){
+    public static byte[] setLeftMargin(int length){
 
 
         int nL=(byte)(length%256);
@@ -217,9 +289,9 @@ public class ReceiptParser {
      @return
      @throws
      */
-    private byte[] setPrintMode(int charactermode,int bold,int width,int height){
+    private static byte[] setPrintMode(boolean underline,boolean bold,boolean width,boolean height){
 
-            byte modeByte = (byte)(charactermode + (bold * 8) + (height*16) + (width*32));
+            byte modeByte = (byte)((underline ? 1:0) + (bold ? 8:0) + (height ? 16:0) + (width?32:0));
 
             return new byte[]{0x1B,0x21,modeByte};
 
@@ -227,13 +299,13 @@ public class ReceiptParser {
 
     /**
      Set bold or/and underline
-     @param value 0 =< rotation =< 3: 0,90,180,270 degrees.
+     @param flipped 0 =< rotation =< 3: 0,90,180,270 degrees.
      @return
      @throws
      */
-    public byte[] setRotation(int value){
+    public static byte[] setRotation(boolean flipped){
 
-        int rotation = (value == 0) ? 2 : 0;
+        int rotation = (!flipped) ? 2 : 0;
 
         return  new byte[]{0x1B,0x56,(byte)rotation};
 
@@ -241,7 +313,7 @@ public class ReceiptParser {
     }
 
 
-    private byte[] setInverted(int flipped){
+    private static byte[] setInverted(int flipped){
 
         return new byte[]{0x1B, 0x7B, (byte)flipped};
 
@@ -265,7 +337,7 @@ public class ReceiptParser {
 
     }
 
-    private byte[] stringToBytes(String string){
+    private  byte[] stringToBytes(String string){
 
         String zeroTerminatedText = "";
 
@@ -306,15 +378,16 @@ public class ReceiptParser {
 
     }
 
-    public byte[] setCodePage(int table){
+    private byte[] setCodePage(int table){
 
 
+        charsetForCodePage(table);
         byte[] bytes = {0x1B, 0x74,(byte)table};
 
         return bytes;
     }
 
-    private byte[] printAndFeed(int linestofeed){
+    private static byte[] printAndFeed(int linestofeed){
 
 
             byte[] command = {0x1B,0x64,(byte)linestofeed};
@@ -356,7 +429,7 @@ public class ReceiptParser {
      Set bold or/and underline
      @param cutmode 0 fullcut, 1 half cut, if  255 > numfeedlines > 0: Feeds for number of lines and half cuts.
      */
-    private byte[] cutPaper(int cutmode,int numfeedlines){
+    private static byte[] cutPaper(int cutmode,int numfeedlines){
 
 
 
@@ -365,7 +438,7 @@ public class ReceiptParser {
     }
 
 
-    public byte[] simpleCut(){
+    public static byte[] simpleCut(){
 
 
         byte[] bytes = new byte[]{0x1D, 0x56, 0};
@@ -474,7 +547,7 @@ public class ReceiptParser {
         }
 
 
-        if (ticketFlipped == 0){
+        if (!ticketFlipped){
 
             Collections.reverse(commandList);
 
@@ -532,7 +605,7 @@ public class ReceiptParser {
                         case "flipped":
 
                             xmlVal = parser.nextText().trim();
-                            ticketFlipped =  (xmlVal.length()==0) ? 0:Integer.parseInt(xmlVal.trim());
+                            ticketFlipped =  (xmlVal.equals("0") ? false:true);
 
 
                             break;
@@ -601,7 +674,7 @@ public class ReceiptParser {
 
                     xmlVal = parser.nextText().trim();
                     alignment = (xmlVal.length()==0) ? 0:Integer.parseInt(xmlVal);
-                    alignment = (ticketFlipped == 0) ? 2-alignment:alignment;
+                    alignment = (!ticketFlipped) ? 2-alignment:alignment;
 
                     break;
 
@@ -625,18 +698,18 @@ public class ReceiptParser {
         byte[] raster = makeRasterFromBase64(bitmapString64, ticketFlipped);
 
 
-        return appendByteArray(alignmentBytes,lineSpaceBytes,raster);
+        return appendByteArray(alignmentBytes, lineSpaceBytes, raster);
     }
 
     private byte[] readText(XmlPullParser parser) throws IOException, XmlPullParserException {
 
-        int width = 0;
-        int height = 0;
-        int bold = 0;
-        int underline = 0;
+        boolean width = false;
+        boolean height = false;
+        boolean bold = false;
+        boolean underline = false;
         int alignment = 0;
         int offset = 0;
-        int lineSpace = default_linespace;
+        int lineSpace = 0;
         int characterSpace = 0;
         int numCharacters = 0;
         String characters = "";
@@ -650,7 +723,7 @@ public class ReceiptParser {
 
 
                     xmlVal = parser.nextText().trim();
-                    width = (xmlVal.length()==0) ? 0:Integer.parseInt(xmlVal);
+                    width = (!xmlVal.equals("0"));
 
                     break;
 
@@ -659,7 +732,7 @@ public class ReceiptParser {
 
 
                     xmlVal = parser.nextText().trim();
-                    height = (xmlVal.length()==0) ? 0:Integer.parseInt(xmlVal);
+                    height = (!xmlVal.equals("0"));
 
                     break;
 
@@ -667,14 +740,14 @@ public class ReceiptParser {
                 case "bold":
 
                     xmlVal = parser.nextText().trim();
-                    bold = (xmlVal.length()==0) ? 0:Integer.parseInt(xmlVal);
+                    bold = (!xmlVal.equals("0"));
 
                     break;
 
                 case "underline":
 
                     xmlVal = parser.nextText().trim();
-                    underline = (xmlVal.length()==0) ? 0:Integer.parseInt(xmlVal);
+                    underline = (!xmlVal.equals("0"));
 
 
                     break;
@@ -694,9 +767,9 @@ public class ReceiptParser {
 
                     }
 
-                    if (ticketFlipped == 0 && (numRTLCharacters < numCharacters/2))
+                    if (!ticketFlipped && (numRTLCharacters < numCharacters/2))
                         characters = new StringBuilder(characters).reverse().toString();
-                    else if (ticketFlipped == 1 && (numRTLCharacters > numCharacters/2))
+                    else if (ticketFlipped && (numRTLCharacters > numCharacters/2))
                         characters = new StringBuilder(characters).reverse().toString();
 
                     break;
@@ -705,7 +778,7 @@ public class ReceiptParser {
 
                     xmlVal = parser.nextText().trim();
                     alignment = (xmlVal.length()==0) ? 0:Integer.parseInt(xmlVal);
-                    alignment = (ticketFlipped == 0) ? 2-alignment:alignment;
+                    alignment = (!ticketFlipped) ? 2-alignment:alignment;
                     break;
 
                 case "offsetx":
@@ -743,8 +816,8 @@ public class ReceiptParser {
 
 
         //When characters are flipped, the correct offset is going to be printwidth - desired offset - charactersize * number of characters.
-        if ((offset > 0) && (ticketFlipped == 0)) {
-            offset = ticketWidth - offset - numCharacters * (width + 1) * 12;
+        if ((offset > 0) && (!ticketFlipped)) {
+            offset = ticketWidth - offset - numCharacters * (width ? 2:1) * 12;
             alignment = 0;
 
         }
@@ -764,8 +837,8 @@ public class ReceiptParser {
         String characters = "";
         boolean scaled = true;
         int size = 70;
-        int bold = 0;
-        int underline = 0;
+        boolean bold = false;
+        boolean underline = false;
         int alignment = 0;
 
         while (parser.nextTag() != XmlPullParser.END_TAG) {
@@ -789,7 +862,7 @@ public class ReceiptParser {
 
                     xmlVal = parser.nextText().trim();
                     alignment = (xmlVal.length() == 0) ? 0 : Integer.parseInt(xmlVal);
-                    alignment = (ticketFlipped == 0) ? 2 - alignment : alignment;
+                    alignment = (!ticketFlipped) ? 2 - alignment : alignment;
 
 
                     break;
@@ -805,14 +878,14 @@ public class ReceiptParser {
                 case "bold":
 
                     xmlVal = parser.nextText().trim();
-                    bold = (xmlVal.length() == 0) ? 0 : Integer.parseInt(xmlVal);
+                    bold = (!xmlVal.equals("0"));
 
                     break;
 
                 case "underline":
 
                     xmlVal = parser.nextText().trim();
-                    underline = (xmlVal.length() == 0) ? 0 : Integer.parseInt(xmlVal);
+                    underline = (!xmlVal.equals("0"));
 
                     break;
                 case "characters":
@@ -827,16 +900,20 @@ public class ReceiptParser {
         }
 
         byte[] alignmentBytes = setAlignment(alignment);
-        byte[] queueRaster = makeQueueRaster(font, size, bold, underline, characters, scaled,ticketFlipped);
+        byte[] queueRaster = makeBigTextRaster(font, size, bold, underline, characters, scaled, ticketFlipped);
 
-        return  appendByteArray(alignmentBytes, queueRaster);
+        return appendByteArray(alignmentBytes, queueRaster);
 
 
 
     }
 
 
-    private byte[] appendByteArray(byte[]... parameters){
+
+
+
+
+    private static byte[] appendByteArray(byte[]... parameters){
 
         int size = 0;
 
@@ -853,6 +930,316 @@ public class ReceiptParser {
             bytesLength += commandByte.length;
         }
         return bytes;
+
+    }
+
+
+
+    private byte[] jsonToPrinterBytes(InputStream inputStream) throws IOException {
+
+
+        ArrayList<byte[]> commandList = new ArrayList<>();
+
+       // ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        JsonReader reader = new JsonReader(new InputStreamReader(inputStream, "UTF-8"));
+
+        try {
+
+            readJson(reader, commandList);
+
+
+            if (!ticketFlipped){
+
+                Collections.reverse(commandList);
+
+            }
+
+            commandList.add(0,setRotation(ticketFlipped));
+            commandList.add(0, setLeftMargin(ticketMargin));
+
+            commandList.add(0, setCodePage(codePage));
+
+            commandList.add(0, setPrintWidth(ticketWidth));
+
+            int commandLength = 0;
+
+            for (byte[] command:commandList) {
+                commandLength+=command.length;
+
+            }
+            byte[] cutBytes = cutPaper(1, 1);
+            ByteBuffer byteBuffer = ByteBuffer.allocate(commandLength + cutBytes.length);
+
+            for (byte[] command:commandList) {
+                byteBuffer.put(command);
+
+            }
+            byteBuffer.put(cutBytes);
+
+            return byteBuffer.array();
+
+
+
+        }
+        finally{
+                reader.close();
+                //outputStream.close();
+                commandList.clear();
+
+
+            }
+
+
+        }
+
+    private void readJson(JsonReader reader,ArrayList<byte[]> commandList) throws IOException {
+
+
+        reader.beginObject();
+
+        if(reader.nextName().equals("qticket")) {
+            reader.hasNext();
+            readLineObject(reader, commandList);
+
+        }
+
+        reader.endObject();
+
+
+
+    }
+
+
+    private void readLineObject(JsonReader reader,ArrayList<byte[]> commandList) throws IOException {
+
+
+        reader.beginArray();
+
+        while(reader.hasNext()){
+            reader.beginObject();
+            switch (reader.nextName()){
+
+                case "ticketsettings":
+                    readSettings(reader);
+                    break;
+                case "rowspace":
+                    commandList.add(rowSpace(reader.nextInt()));
+                    break;
+                case "bigtext":
+                    commandList.add(readBigText(reader));
+                    break;
+                case "image":
+                    commandList.add(readImageJson(reader));
+                    break;
+                case "text":
+                    commandList.add(readTextJson(reader));
+                    break;
+            }
+
+            reader.endObject();
+
+        }
+
+        reader.endArray();
+
+
+
+
+    }
+
+    private void readSettings(JsonReader reader) throws IOException {
+
+
+        reader.beginObject();
+        while (reader.hasNext()){
+            switch (reader.nextName()){
+                case "margin":
+                    ticketMargin = reader.nextInt();
+                    break;
+                case "width":
+                    ticketWidth = reader.nextInt();
+                    break;
+                case "flipped":
+                    ticketFlipped = reader.nextBoolean();
+                    break;
+                case "codepage":
+                    codePage = reader.nextInt();
+                    charsetForCodePage(codePage);
+                    break;
+            }
+
+
+
+        }
+        reader.endObject();
+
+
+
+
+
+
+    }
+
+    private byte[] readBigText(JsonReader reader) throws IOException {
+
+        String font = null;
+        int alignment = 0;
+        int size = 0;
+        boolean bold = false;
+        boolean underline = false;
+        String characters = null;
+
+        reader.beginObject();
+        while (reader.hasNext()){
+            switch (reader.nextName()){
+                case "font":
+                    font = reader.nextString();
+                    break;
+                case "alignment":
+                    alignment = reader.nextInt();
+                    alignment = (!ticketFlipped) ? 2-alignment:alignment;
+                    break;
+                case "size":
+                    size = reader.nextInt();
+                    break;
+                case "bold":
+                    bold = reader.nextBoolean();
+                    break;
+                case "underline":
+                    underline = reader.nextBoolean();
+                    break;
+                case "characters":
+                    characters = reader.nextString();
+                    break;
+            }
+
+
+
+        }
+        reader.endObject();
+
+        byte[] alignmentBytes = setAlignment(alignment);
+        byte[] queueRaster = makeBigTextRaster(font, size, bold, underline, characters, true, ticketFlipped);
+
+        return  appendByteArray(alignmentBytes, queueRaster);
+
+
+
+
+    }
+
+    private byte[] readImageJson(JsonReader reader) throws IOException {
+
+        int alignment = 0;
+        String base64 = null;
+
+        reader.beginObject();
+        while (reader.hasNext()){
+            switch (reader.nextName()){
+               case "alignment":
+                    alignment = reader.nextInt();
+                   alignment = (!ticketFlipped) ? 2-alignment:alignment;
+                    break;
+                case "base64":
+                    base64 = reader.nextString();
+                    break;
+            }
+
+
+
+        }
+        reader.endObject();
+
+
+        byte[] alignmentBytes = setAlignment(alignment);
+        byte[] raster = makeRasterFromBase64(base64, ticketFlipped);
+
+
+        return appendByteArray(alignmentBytes, raster);
+
+
+    }
+
+    private byte[] readTextJson(JsonReader reader) throws IOException {
+
+        boolean width = false;
+        boolean height = false;
+        boolean bold = false;
+        boolean underline = false;
+        int alignment = 0;
+        int offsetX = 0;
+        int characterSpace = 0;
+        String characters = null;
+
+        int numCharacters = 0;
+
+
+        reader.beginObject();
+        while (reader.hasNext()){
+            switch (reader.nextName()){
+                case "width":
+                    width = reader.nextBoolean();
+                    break;
+                case "height":
+                    height = reader.nextBoolean();
+                    break;
+                case "bold":
+                    bold = reader.nextBoolean();
+                    break;
+                case "underline":
+                    underline = reader.nextBoolean();
+                    break;
+                case "alignment":
+                    alignment = reader.nextInt();
+                    alignment = (!ticketFlipped) ? 2-alignment:alignment;
+                    break;
+                case "offsetx":
+                    offsetX = reader.nextInt();
+                    break;
+                case "characterspace":
+                    characterSpace = reader.nextInt();
+                    break;
+                case "characters":
+                    characters = reader.nextString();
+                    numCharacters = characters.length();
+                    int numRTLCharacters = 0;
+
+                    for (char character:characters.toCharArray()) {
+
+                        if (((int)character > 1424) && ((int)character < 1792))
+                            numRTLCharacters++;
+
+                    }
+
+                    if (!ticketFlipped && (numRTLCharacters < numCharacters/2))
+                        characters = new StringBuilder(characters).reverse().toString();
+                    else if (ticketFlipped && (numRTLCharacters > numCharacters/2))
+                        characters = new StringBuilder(characters).reverse().toString();
+
+                    break;
+            }
+
+
+
+        }
+        reader.endObject();
+
+        byte[] appearance = setPrintMode(underline, bold, width, height);
+
+        //When characters are flipped, the correct offset is going to be printwidth - desired offset - charactersize * number of characters.
+        if ((offsetX > 0) && (!ticketFlipped)) {
+            offsetX = ticketWidth - offsetX - numCharacters * (width ? 2 : 1) * 12;
+            alignment = 0;
+
+        }
+        else if(offsetX < 0)
+            offsetX = 0;
+        byte[] alignmentBytes = setAlignment(alignment);
+        byte[] offsetBytes = setIndent(offsetX);
+        byte[] characterSpaceBytes = setCharacterSpace(characterSpace);
+        byte[] characterBytes = stringToBytes(characters);
+        return appendByteArray(appearance,alignmentBytes,offsetBytes, characterSpaceBytes,characterBytes);
 
     }
 

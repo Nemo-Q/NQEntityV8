@@ -2,6 +2,7 @@ package com.nemoq.nqpossysv8.NetworkHandling;
 
 import android.text.Html;
 import android.util.Log;
+import android.util.Xml;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -27,28 +28,19 @@ public class HttpParser {
 
     Map<String,String> httpTable;
 
-    private String bodyCharacters;
-    private String restCharacters;
-
     static private String LINE_DELIMITER = "\r\n";
     static private String BODY_DELIMITER = "\r\n\r\n";
 
-    private int numberOfChunks;
-
-    private String bufferString;
-    private String bodyBuffer;
-
-
+    private StringBuilder bufferString;
+    private StringBuilder bodyBuffer;
 
     public HttpParser(){
 
         bodyLengthRead = 0;
 
-        httpTable = new HashMap<String,String>();
-        restCharacters = new String();
-        bodyCharacters = new String();
-
-        numberOfChunks = 0;
+        httpTable = new HashMap<>();
+        bufferString = new StringBuilder();
+        bodyBuffer = new StringBuilder();
 
     }
 
@@ -57,27 +49,28 @@ public class HttpParser {
     public boolean parse(byte[] bytes){
 
 
-        String characters = new String(bytes,0,bytes.length,Charset.forName("UTF-8"));
+        //String characters = new String(bytes,0,bytes.length,Charset.forName("UTF-8"));
+        for (byte b:bytes){
+            bufferString.append((char)b);
+        }
 
-        bufferString += characters;
-        String parseString = "";
-        if (bufferString.contains(BODY_DELIMITER)){
+        if (bufferString.toString().contains(BODY_DELIMITER)){
 
             String header = bufferString.substring(0, bufferString.indexOf(BODY_DELIMITER));
             parseHeader(header);
-            bodyBuffer = bufferString.replace(header,"");
-            bufferString = "";
+            bodyBuffer.append(bufferString.toString().replace(header,""));
+            bufferString.delete(0,bufferString.length());
 
         }
-        if (bodyBuffer.contains(BODY_DELIMITER)) {
-            bodyBuffer += bufferString;
-            bufferString = "";
+        if (bodyBuffer.toString().contains(BODY_DELIMITER)) {
+            bodyBuffer.append(bufferString);
+            bufferString.delete(0,bufferString.length());
         }
-
+       // characters = null;
         if (Integer.parseInt(httpTable.get("Content-Length")) <= (bodyBuffer.length()+4)){
 
 
-            parseBody(bodyBuffer.replace(BODY_DELIMITER,""));
+            parseBody(bodyBuffer.toString().replace(BODY_DELIMITER, ""));
             return true;
 
         }
@@ -127,7 +120,8 @@ public class HttpParser {
 
     public Map<String,String> getTable(){
 
-
+        bodyBuffer = null;
+        bufferString = null;
 
         return httpTable;
     }
@@ -147,7 +141,7 @@ public class HttpParser {
                 "</html>";
 
         String typeHeader = "HTTP/1.1 200 OK";
-        String serverHeader = "Server: Nemo-Q Printer";
+        String serverHeader = "Server: Nemo-Q V8 Printer";
         String contentTypeHeader = "Content-Type: text/html";
 
         String lengthHeader = "Content-Length: " + htmlBody.length();

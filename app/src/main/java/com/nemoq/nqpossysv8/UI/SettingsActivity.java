@@ -1,9 +1,11 @@
 package com.nemoq.nqpossysv8.UI;
 
 import android.annotation.TargetApi;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -12,18 +14,30 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.PowerManager;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
+import android.preference.PreferenceGroup;
 import android.preference.PreferenceManager;
+import android.preference.PreferenceScreen;
 import android.preference.RingtonePreference;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ListView;
 
+import com.nemoq.nqpossysv8.NetworkHandling.NetworkService;
+import com.nemoq.nqpossysv8.PinCodeManager;
 import com.nemoq.nqpossysv8.R;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 
@@ -88,7 +102,7 @@ public class SettingsActivity extends PreferenceActivity {
         @Override
         public boolean onPreferenceChange(Preference preference, Object value) {
             String stringValue = value.toString();
-
+            Resources res = preference.getContext().getResources();
 
 
             if (preference instanceof ListPreference) {
@@ -104,14 +118,18 @@ public class SettingsActivity extends PreferenceActivity {
                                 : null);
 
             }
+            else if(preference.getKey().equals(res.getString(R.string.pref_key_kiosk))){
+                systemUI(Boolean.parseBoolean(value.toString()));
+            }
+            else if(preference.getKey().equals(res.getString(R.string.pref_key_boot))){
+                Log.d("Launch app on Boot: ", stringValue);
+            }
 
-
-             else {
+            else {
                 // For all other preferences, set the summary to the value's
                 // simple string representation.
                 preference.setSummary(stringValue);
             }
-
              return true;
 
         }
@@ -131,15 +149,71 @@ public class SettingsActivity extends PreferenceActivity {
         // Set the listener to watch for value changes.
         preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
 
+        Resources res = preference.getContext().getResources();
         // Trigger the listener immediately with the preference's
         // current value.
-        if (preference.getKey().equals("receive")){
+        if (preference.getKey().equals(res.getString(R.string.pref_key_receive))){
             sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
                     PreferenceManager
                             .getDefaultSharedPreferences(preference.getContext())
                             .getBoolean(preference.getKey(), false));
-        }
+            Intent intent=new Intent(preference.getContext().getApplicationContext(),NetworkService.class);
+            intent.setAction(preference.getContext().getString(R.string.broadcast_restart_listen));
+            LocalBroadcastManager.getInstance(preference.getContext()).sendBroadcast(intent);
 
+        }
+        else if(preference.getKey().equals(res.getString(R.string.pref_key_kiosk))){
+
+            sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+                    PreferenceManager
+                            .getDefaultSharedPreferences(preference.getContext())
+                            .getBoolean(preference.getKey(), false));
+
+
+        }
+        else if(preference.getKey().equals(res.getString(R.string.pref_key_boot))){
+
+            sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+                    PreferenceManager
+                            .getDefaultSharedPreferences(preference.getContext())
+                            .getBoolean(preference.getKey(), true));
+
+
+        }
+        else if(preference.getKey().equals(res.getString(R.string.pref_key_close))) {
+            preference.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+
+                @Override
+                public boolean onPreferenceClick(Preference preference) {
+                    PreferenceActivity preferenceActivity = (PreferenceActivity)preference.getContext();
+                    preferenceActivity.finish();
+                    return false;
+                }
+            });
+
+        }
+            else if (preference.getKey().equals(res.getString(R.string.pref_key_quit))){
+
+                preference.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+
+                    @Override
+                    public boolean onPreferenceClick(Preference preference) {
+
+                        PreferenceActivity preferenceActivity = (PreferenceActivity)preference.getContext();
+                        preferenceActivity.finish();
+
+                        Intent intent=new Intent(preference.getContext().getApplicationContext(),V8MainActivity.class);
+
+                        intent.setAction(preference.getContext().getString(R.string.broadcast_close_activity));
+                        LocalBroadcastManager.getInstance(preference.getContext()).sendBroadcast(intent);
+
+
+                        return false;
+                    }
+                });
+
+
+        }
         else {
             sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
                     PreferenceManager
@@ -148,6 +222,7 @@ public class SettingsActivity extends PreferenceActivity {
         }
 
     }
+
 
     /**
      * This fragment shows general preferences only. It is used when the
@@ -162,19 +237,18 @@ public class SettingsActivity extends PreferenceActivity {
             PreferenceManager.setDefaultValues(getActivity(),
                     R.xml.pref_connection, false);
 
-
-
             addPreferencesFromResource(R.xml.pref_connection);
+            Resources res = getResources();
 
-
-            bindPreferenceSummaryToValue(findPreference("receive"));
-            bindPreferenceSummaryToValue(findPreference("device_name"));
-            bindPreferenceSummaryToValue(findPreference("server_ip"));
-            bindPreferenceSummaryToValue(findPreference("server_port"));
-            bindPreferenceSummaryToValue(findPreference("udp_port"));
-            bindPreferenceSummaryToValue(findPreference("listen_port"));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_receive)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_name)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_web_ip)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_web_port)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_udp_port)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_listen_port)));
 
         }
+
 
 
 
@@ -196,14 +270,41 @@ public class SettingsActivity extends PreferenceActivity {
             PreferenceManager.setDefaultValues(getActivity(),
                     R.xml.pref_general, false);
             addPreferencesFromResource(R.xml.pref_general);
+            Resources res = getResources();
 
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_boot)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_kiosk)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_quit)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_close)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_pin)));
 
         }
     }
 
 
 
+    private static void systemUI(boolean enabled){
 
+        try
+        {
+            Process su;
+            su = Runtime.getRuntime().exec("system/xbin/su");
+            DataOutputStream os = new DataOutputStream(su.getOutputStream());
+            os.writeBytes("pm " + (enabled ? "disable":"enable" )
+                    + " com.android.systemui\n");
+            os.writeBytes("exit\n");
+            os.flush();
+
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+            throw new SecurityException();
+        }
+
+
+
+
+    }
 
 
 
