@@ -7,14 +7,19 @@
         android:key="@string/pref_key_kiosk"
         android:title="Kiosk Mode"
         android:summary="Disable the navigation bar\nNeeds device restart to take effect"
-        android:defaultValue="False" />
+        android:defaultValue="false" />
         <CheckBoxPreference
             android:key="@string/pref_key_boot"
             android:title="Launch on Boot"
             android:summary="Start the App when the device boots"
-            android:defaultValue="True" />
+            android:defaultValue="true" />
+        <Preference
+            android:key="@string/pref_key_service"
+            android:title="Restart Service"
+            android:summary="Restarts the service and thus the entire Application"/>
 
     </PreferenceCategory>
+
     <PreferenceCategory
         android:summary="Navigation"
         android:title="Device Control">

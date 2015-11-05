@@ -218,6 +218,8 @@ public class ReceiptParser {
             decodedPBM = BitmapTranslator.getInstance().base64ToPBM(base64Image, true, flipped);
         } catch (BitmapTranslator.BitmapException e) {
             e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         return decodedPBM;
@@ -399,29 +401,39 @@ public class ReceiptParser {
 
     private byte[] rowSpace(int space){
 
-        int rows = space / 256;
-        int restSpace = space - (rows*255);
+        if (space > 0) {
+            int rows = space / 256;
+            int restSpace = space - (rows * 255);
+            byte[] charNewLineBytes = "\n".getBytes();
 
-        byte[] breakChars = new byte[rows];
+            if (rows > 0) {
+                byte[] breakChars = new byte[rows];
 
-        byte[] lineSpaceBytes = setLineSpace(255);
+
+                byte[] maxSpaceBytes = setLineSpace(255);
 
 
-        byte[] charNewLineBytes = "\n".getBytes();
 
-        for (int i = 0;i<breakChars.length;i++){
 
-            breakChars[i] = charNewLineBytes[0];
+                for (int i = 0; i < breakChars.length; i++) {
+
+                    breakChars[i] = charNewLineBytes[0];
+
+                }
+
+                byte[] rowBytes = appendByteArray(maxSpaceBytes, breakChars);
+                byte[] restSpaceBytes = appendByteArray(setLineSpace(restSpace), charNewLineBytes);
+                return appendByteArray(rowBytes,restSpaceBytes);
+            }
+            else {
+                byte[] restSpaceBytes = appendByteArray(setLineSpace(restSpace), charNewLineBytes);
+                return restSpaceBytes;
+            }
+
 
         }
-
-        byte[] rowBytes = appendByteArray(lineSpaceBytes,breakChars);
-
-        lineSpaceBytes = setLineSpace(restSpace);
-
-        byte[] restSpaceBytes = appendByteArray(lineSpaceBytes,charNewLineBytes);
-
-        return appendByteArray(rowBytes,restSpaceBytes);
+        else
+            return new byte[]{};
 
     }
 
@@ -1024,7 +1036,8 @@ public class ReceiptParser {
                     readSettings(reader);
                     break;
                 case "rowspace":
-                    commandList.add(rowSpace(reader.nextInt()));
+                    int value = reader.nextInt();
+                    commandList.add(rowSpace(value));
                     break;
                 case "bigtext":
                     commandList.add(readBigText(reader));
@@ -1235,11 +1248,13 @@ public class ReceiptParser {
         }
         else if(offsetX < 0)
             offsetX = 0;
+
         byte[] alignmentBytes = setAlignment(alignment);
+        byte[] lineSpaceBytes = setLineSpace(0);
         byte[] offsetBytes = setIndent(offsetX);
         byte[] characterSpaceBytes = setCharacterSpace(characterSpace);
         byte[] characterBytes = stringToBytes(characters);
-        return appendByteArray(appearance,alignmentBytes,offsetBytes, characterSpaceBytes,characterBytes);
+        return appendByteArray(lineSpaceBytes,appearance,alignmentBytes,offsetBytes, characterSpaceBytes,characterBytes);
 
     }
 

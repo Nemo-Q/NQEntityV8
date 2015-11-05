@@ -3,6 +3,7 @@ package com.nemoq.nqpossysv8.print;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.BitmapRegionDecoder;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -11,6 +12,7 @@ import android.graphics.Typeface;
 import android.util.Base64;
 import android.util.Log;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 
 /**
@@ -105,17 +107,12 @@ public class BitmapTranslator {
     }
 
     //Make a bitmap out of the base64 string
-    public static byte[] base64ToPBM(String base64Image,boolean scale,boolean flipped) throws BitmapException{
+    public static byte[] base64ToPBM(String base64Image,boolean scale,boolean flipped) throws BitmapException, IOException {
 
         byte[] base64Bytes = Base64.decode(base64Image, Base64.DEFAULT);
 
         Bitmap bitmap = BitmapFactory.decodeByteArray(base64Bytes, 0, base64Bytes.length);
-      /*  if (bitmap == null) {
 
-
-            //throw new BitmapException("Couldn't make bitmap out of base64");
-
-        }*/
 
         return getPortableBitmap(bitmap,scale,flipped);
 
@@ -128,7 +125,7 @@ public class BitmapTranslator {
     public static byte[] getPortableBitmap(Bitmap bitmap,boolean scale,boolean flipped){
 
 
-        byte[] PBM = makePBM(makeBitArray(bitmap,flipped),bitmap,scale);
+        byte[] PBM = makePBM(makeBitArray(bitmap, flipped),bitmap.getWidth(),bitmap.getHeight(), scale);
         bitmap.recycle();
         return PBM;
 
@@ -136,6 +133,8 @@ public class BitmapTranslator {
 
     //Read all the pixels, and make 1 bit depth bitmap. -1 is white lower is black.
     private static byte[] makeBitArray(Bitmap bitmap,boolean flipped){
+
+
 
 
         int[] pixels = new int[bitmap.getWidth() * bitmap.getHeight()];
@@ -170,18 +169,18 @@ public class BitmapTranslator {
 
 
     //read out the 1-bit bitmap and translate to portable-bitmap and the corresponding combination for the printer.
-    private static byte[] makePBM(byte[] bitArray,Bitmap bitmap,boolean scale){
+    private static byte[] makePBM(byte[] bitArray,int width,int height,boolean scale){
 
 
 
-        int xPixels = bitmap.getWidth();
+        int xPixels = width;
 
         int xSegments = (xPixels % 8 == 0) ? xPixels/8 : xPixels / DOTS_PER_SEGMENT +1;
         int xL = (xSegments % 256);
         int xH = xSegments / (256);
 
 
-        int ySegments = bitmap.getHeight();
+        int ySegments = height;
 
         int yL = ySegments % 256;
         int yH = ySegments / 256;

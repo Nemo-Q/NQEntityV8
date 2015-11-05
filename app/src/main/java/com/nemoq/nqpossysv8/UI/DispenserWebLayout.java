@@ -1,10 +1,14 @@
 package com.nemoq.nqpossysv8.UI;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -32,6 +36,8 @@ import com.nemoq.nqpossysv8.R;
  */
 public class DispenserWebLayout extends RelativeLayout implements View.OnClickListener, View.OnTouchListener {
 
+
+    private WebView webView;
 
     public DispenserWebLayout(Context context) {
         super(context);
@@ -101,7 +107,7 @@ public class DispenserWebLayout extends RelativeLayout implements View.OnClickLi
 
         super.onFinishInflate();
 
-        WebView webView = (WebView)getRootView().findViewById(R.id.dispenserWebView);
+        webView = (WebView)getRootView().findViewById(R.id.dispenserWebView);
 
         webView.setOnTouchListener(this);
 
@@ -110,7 +116,38 @@ public class DispenserWebLayout extends RelativeLayout implements View.OnClickLi
         webView.addJavascriptInterface(new WebAppInterface(getContext()), "Android");
         webView.getSettings().setBuiltInZoomControls(false);
 
-        webView.loadUrl("http://192.168.1.151/NQS/NQV2WebTouchDispenser/");
+        loadWebFromPreferences();
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(getResources().getString(R.string.broadcast_address_changed));
+
+        LocalBroadcastManager.getInstance(getContext()).registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction().equals(getResources().getString(R.string.broadcast_address_changed))) {
+
+                    loadWebFromPreferences();
+                }
+
+
+            }
+        }, intentFilter);
+
+
+
+
+
+
+    }
+
+
+    public void loadWebFromPreferences(){
+
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        String address = sharedPreferences.getString(getResources().getString(R.string.pref_key_web_address), "");
+        String port= sharedPreferences.getString(getResources().getString(R.string.pref_key_web_port),"");
+        address = address.contains("http://") ? address : "http://" + address;
+        webView.loadUrl((address + ":" + port + "/NQS/NQV2WebTouchDispenser/"));
 
 
 
@@ -204,11 +241,21 @@ public class DispenserWebLayout extends RelativeLayout implements View.OnClickLi
 
         }
 
-        final ImageButton button = (ImageButton) findViewById(R.id.buttonDismissPin);
-        button.setOnClickListener(new View.OnClickListener() {
+
+        final ImageButton dismissButton = (ImageButton) findViewById(R.id.buttonDismissPin);
+        dismissButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 dialogFinish(false);
+            }
+        });
+
+        final ImageButton eraseButton = (ImageButton) findViewById(R.id.eraseButton);
+        eraseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                EditText pinField = (EditText) findViewById(R.id.pinTextField);
+                pinField.getText().delete(pinField.length()-1,pinField.length());
             }
         });
 

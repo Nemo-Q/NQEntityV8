@@ -22,8 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class HttpParser {
 
-    boolean done;
-
     int bodyLengthRead;
 
     Map<String,String> httpTable;
@@ -49,7 +47,7 @@ public class HttpParser {
     public boolean parse(byte[] bytes){
 
 
-        //String characters = new String(bytes,0,bytes.length,Charset.forName("UTF-8"));
+
         for (byte b:bytes){
             bufferString.append((char)b);
         }
@@ -66,7 +64,7 @@ public class HttpParser {
             bodyBuffer.append(bufferString);
             bufferString.delete(0,bufferString.length());
         }
-       // characters = null;
+
         if (Integer.parseInt(httpTable.get("Content-Length")) <= (bodyBuffer.length()+4)){
 
 

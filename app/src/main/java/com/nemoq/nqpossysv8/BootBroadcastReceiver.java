@@ -24,9 +24,9 @@ public class BootBroadcastReceiver extends BroadcastReceiver {
 
 
         if (launchOnBoot) {
-            Intent i = new Intent(context, V8MainActivity.class);
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(i);
+            Intent activityIntent = new Intent(context, V8MainActivity.class);
+            activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(activityIntent);
 
             Intent networkServiceIntent = new Intent(context, NetworkService.class);
             context.startService(networkServiceIntent);

@@ -154,11 +154,14 @@ public class SocketThreadClass implements Runnable{
                     Map<String, String> table = receiveData(socket);
                     byte[] printBytes = null;
 
-                    // Make printer bytes from the xml string
+                    // Make printer bytes
 
 
                     if (table != null && Integer.parseInt(table.get("Content-Length")) > 0) {
-                        printBytes = ReceiptParser.getInstance(context).xmlStringToPrinterCommand(table.get("Body"));
+                        if (table.get("Content-Type").equals("application/json"))
+                            printBytes = ReceiptParser.getInstance(context).JSONToPrinterCommand(table.get("Body"));
+                        else
+                            printBytes = ReceiptParser.getInstance(context).xmlStringToPrinterCommand(table.get("Body"));
 
 
                         //How did it go?
@@ -234,7 +237,7 @@ public class SocketThreadClass implements Runnable{
 
 
                 int bytesAvailable;
-                byte[] buffer = new byte[8192];
+                byte[] buffer = new byte[1024];
                 HttpParser httpParser = new HttpParser();
 
                 int bytesRead;

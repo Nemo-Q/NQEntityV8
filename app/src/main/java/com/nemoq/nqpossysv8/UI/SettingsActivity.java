@@ -119,12 +119,23 @@ public class SettingsActivity extends PreferenceActivity {
 
             }
             else if(preference.getKey().equals(res.getString(R.string.pref_key_kiosk))){
+                //TODO: fix default value and type
                 systemUI(Boolean.parseBoolean(value.toString()));
             }
             else if(preference.getKey().equals(res.getString(R.string.pref_key_boot))){
                 Log.d("Launch app on Boot: ", stringValue);
             }
+            else if (preference.getKey().equals(res.getString(R.string.pref_key_web_address)) || preference.getKey().equals(res.getString(R.string.pref_key_web_port))){
+                String oldValue = preference.getSharedPreferences().getString(preference.getKey(), "");
+                preference.setSummary(stringValue);
 
+                if (!oldValue.equals(stringValue)) {
+                    Intent intent = new Intent(preference.getContext().getApplicationContext(), DispenserWebLayout.class);
+                    intent.setAction(preference.getContext().getString(R.string.broadcast_address_changed));
+                    LocalBroadcastManager.getInstance(preference.getContext()).sendBroadcast(intent);
+
+                }
+            }
             else {
                 // For all other preferences, set the summary to the value's
                 // simple string representation.
@@ -214,6 +225,24 @@ public class SettingsActivity extends PreferenceActivity {
 
 
         }
+        else if (preference.getKey().equals(res.getString(R.string.pref_key_service))){
+
+            preference.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+
+                @Override
+                public boolean onPreferenceClick(Preference preference) {
+
+                    Intent intent = new Intent(preference.getContext(), NetworkService.class);
+
+                    preference.getContext().stopService(intent);
+                    preference.getContext().startService(intent);
+
+                    return false;
+                }
+            });
+
+
+        }
         else {
             sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
                     PreferenceManager
@@ -242,10 +271,11 @@ public class SettingsActivity extends PreferenceActivity {
 
             bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_receive)));
             bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_name)));
-            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_web_ip)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_web_address)));
             bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_web_port)));
             bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_udp_port)));
             bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_listen_port)));
+
 
         }
 
@@ -277,9 +307,12 @@ public class SettingsActivity extends PreferenceActivity {
             bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_quit)));
             bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_close)));
             bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_pin)));
+            bindPreferenceSummaryToValue(findPreference(res.getString(R.string.pref_key_service)));
 
         }
+
     }
+
 
 
 

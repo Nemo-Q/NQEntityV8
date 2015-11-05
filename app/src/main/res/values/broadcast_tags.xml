@@ -3,4 +3,8 @@
 <string name="broadcast_close_activity">CLOSE_ACTIVITY_BROADCAST</string>
 <string name="broadcast_app_shutdown">SHUTDOWN_APP_BROADCAST</string>
 <string name="broadcast_restart_listen">RESTART_LISTEN</string>
+    <string name="broadcast_address_changed">ADDRESS_CHANGED</string>
+    <string name="broadcast_preferences_changed">PREFERENCES_CHANGED</string>
+    <string name="broadcast_service_toggle">SERVICE_TOGGLE_RUN</string>
+
 </resources>
