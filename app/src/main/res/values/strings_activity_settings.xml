@@ -5,6 +5,7 @@
     <string name="pref_header_general">General</string>
 
     <string name="pref_key_boot">BOOT_APP</string>
+
     <string name="pref_key_kiosk">KIOSK_MODE</string>
     <string name="pref_key_pin">APP_PIN</string>
     <string name="pref_key_close">CLOSE_SETTINGS</string>
@@ -21,6 +22,10 @@
     <string name="pref_key_udp_port">UDP_PORT</string>
     <string name="pref_key_listen_port">LISTEN_PORT</string>
     <string name="pref_key_service">RESTART_SERVICE</string>
+
+
+    <string name="pref_key_version">VERSION_NAME</string>
+
 
 
 </resources>

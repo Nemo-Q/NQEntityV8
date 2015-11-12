@@ -1,28 +1,30 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:layout_height="match_parent" android:background="#000000"
-    tools:context=".V8Activity">
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="fill_parent"
+    android:layout_height="fill_parent" android:background="#FFFFFF"
+    tools:context=".V8Activity"
+    >
     <!-- This FrameLayout insets its children based on system windows using
          android:fitsSystemWindows. -->
-    <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent"
-        android:fitsSystemWindows="true">
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        android:translationZ="4dp"
+        android:layout_gravity="left|top"
+        android:background="#ebebeb">
         <LinearLayout android:id="@+id/fullscreen_content_controls" style="?metaButtonBarStyle"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
             android:background="@color/black_overlay" android:orientation="horizontal"
             tools:ignore="UselessParent"
             android:weightSum="1"></LinearLayout>
-
         <Button
         android:layout_width="240dp"
         android:layout_height="219dp"
         android:text="Touch"
-        android:elevation="12dp"
         android:id="@+id/button"
         android:layout_weight="1.05"
         android:background="@android:drawable/dialog_holo_light_frame"
         android:textColor="#010101"
-        android:visibility="visible"
+        android:visibility="gone"
             android:layout_gravity="center" />
         <ImageButton
             android:layout_width="70dp"
@@ -30,9 +32,42 @@
             android:id="@+id/settingsButton"
             android:src="@android:drawable/ic_menu_preferences"
             android:layout_gravity="right"
-            android:visibility="invisible"
+            android:visibility="visible"
             android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true" />
-    </FrameLayout>
-
+            android:layout_alignParentEnd="true"
+            />
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:id="@+id/leftArrow"
+            android:src="@drawable/arrow"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="80dp" />
+        <FrameLayout
+            android:orientation="vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_centerHorizontal="true"
+            android:id="@+id/draggableLayout">
+            <ImageView
+                android:layout_width="264dp"
+                android:layout_height="354dp"
+                android:id="@+id/dragTarget"
+                android:layout_gravity="center"
+                android:src="@drawable/white0"
+                android:alpha="1.0"
+                android:cropToPadding="false"
+                android:adjustViewBounds="false"
+                android:layout_centerVertical="true"
+                android:layout_centerHorizontal="true" />
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="323dp"
+                android:id="@+id/templateImage"
+                android:layout_gravity="center"
+                android:src="@drawable/template"/>
+        </FrameLayout>
+    </RelativeLayout>
 </FrameLayout>

@@ -3,10 +3,12 @@
     <!-- These settings headers are only used on tablets. -->
 
 
-    <header android:fragment="com.nemoq.nqpossysv8.UI.SettingsActivity$GeneralPreferenceFragment"
+    <header android:fragment="com.nemoq.nqentityv8.UI.SettingsActivity$GeneralPreferenceFragment"
         android:title="@string/pref_header_general" />
 
-    <header android:fragment="com.nemoq.nqpossysv8.UI.SettingsActivity$ConnectionPreferenceFragment"
+    <header android:fragment="com.nemoq.nqentityv8.UI.SettingsActivity$ConnectionPreferenceFragment"
         android:title="Connectivity" />
+    <header android:fragment="com.nemoq.nqentityv8.UI.SettingsActivity$AboutPreferenceFragment"
+        android:title="About" />
 
 </preference-headers>
