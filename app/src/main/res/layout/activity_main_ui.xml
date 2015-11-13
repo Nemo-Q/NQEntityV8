@@ -5,45 +5,35 @@
     >
     <!-- This FrameLayout insets its children based on system windows using
          android:fitsSystemWindows. -->
-    <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent"
-        android:fitsSystemWindows="true"
+    <RelativeLayout android:layout_width="fill_parent" android:layout_height="fill_parent"
+        android:fitsSystemWindows="false"
         android:translationZ="4dp"
         android:layout_gravity="left|top"
-        android:background="#ebebeb">
+        android:background="@drawable/bgv8"
+        android:id="@+id/mainLayout">
         <LinearLayout android:id="@+id/fullscreen_content_controls" style="?metaButtonBarStyle"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_width="fill_parent" android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
             android:background="@color/black_overlay" android:orientation="horizontal"
             tools:ignore="UselessParent"
             android:weightSum="1"></LinearLayout>
-        <Button
-        android:layout_width="240dp"
-        android:layout_height="219dp"
-        android:text="Touch"
-        android:id="@+id/button"
-        android:layout_weight="1.05"
-        android:background="@android:drawable/dialog_holo_light_frame"
-        android:textColor="#010101"
-        android:visibility="gone"
-            android:layout_gravity="center" />
         <ImageButton
             android:layout_width="70dp"
             android:layout_height="70dp"
             android:id="@+id/settingsButton"
             android:src="@android:drawable/ic_menu_preferences"
             android:layout_gravity="right"
-            android:visibility="visible"
+            android:visibility="invisible"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
             />
         <ImageView
             android:layout_width="100dp"
             android:layout_height="100dp"
-            android:id="@+id/leftArrow"
+            android:id="@+id/dragDownArrow"
             android:src="@drawable/arrow"
-            android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true"
-            android:layout_marginBottom="80dp" />
+            android:layout_below="@+id/draggableLayout"
+            android:layout_centerHorizontal="true" />
         <FrameLayout
             android:orientation="vertical"
             android:layout_width="wrap_content"
@@ -69,5 +59,6 @@
                 android:layout_gravity="center"
                 android:src="@drawable/template"/>
         </FrameLayout>
+
     </RelativeLayout>
 </FrameLayout>

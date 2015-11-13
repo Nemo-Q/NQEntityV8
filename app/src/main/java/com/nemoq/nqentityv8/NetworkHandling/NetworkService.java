@@ -277,7 +277,7 @@ public class NetworkService extends Service {
     private void print(byte[] printerBytes) throws IOException {
 
 
-            PrintInterface printInterface = new PrintInterface();
+            PrintInterface printInterface = PrintInterface.getInstance(getBaseContext());
             printInterface.writeData(printerBytes);
 
 

@@ -2,6 +2,7 @@
 package com.nemoq.nqentityv8.UI;
 
 import android.animation.Animator;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,9 +10,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Rect;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,6 +33,7 @@ import com.nemoq.nqentityv8.R;
 import com.nemoq.nqentityv8.print.PrintApplication;
 import com.nemoq.nqentityv8.print.PrintInterface;
 import com.nemoq.nqentityv8.print.ReceiptParser;
+import com.nemoq.nqentityv8.print.util.SystemUiHider;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -42,18 +46,25 @@ import android_serialport_api.SerialPort;
  */
 
 
-public class V8MainActivity extends Activity implements View.OnClickListener{
+public class V8MainActivity extends Activity{
 
     private static V8MainActivity v8MainActivity;
     protected PrintApplication mApplication;
     protected SerialPort mSerialPort;
     protected OutputStream mOutputStream;
 
+    private static final int HIDER_FLAGS = SystemUiHider.FLAG_HIDE_NAVIGATION;
+    private SystemUiHider mSystemUiHider;
+    private boolean uiShowing = false;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setDefaultPreferences();
+
+
         setContentView(R.layout.activity_main_ui);
 
         IntentFilter intentFilter = new IntentFilter();
@@ -71,38 +82,32 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
             }
         }, intentFilter);
 
-
-        final Button xmlPrint = (Button) findViewById(R.id.button);
-        xmlPrint.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
+        final View mainView = findViewById(R.id.mainLayout);
+        hideSystemUI();
 
 
-                AsyncTask asyncTask = new AsyncTask() {
+
+        mSystemUiHider = SystemUiHider.getInstance(this, mainView, HIDER_FLAGS);
+        mSystemUiHider.setup();
+        mSystemUiHider
+                .setOnVisibilityChangeListener(new SystemUiHider.OnVisibilityChangeListener() {
+                    // Cached values.
                     @Override
-                    protected Object doInBackground(Object[] params) {
-                        byte[] bytes = ReceiptParser.getInstance(getApplicationContext()).testJson(getResources().openRawResource(R.raw.ticketjson));
-                        PrintInterface printInterface = new PrintInterface();
-                        try {
-                            printInterface.writeData(bytes);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        return null;
+                    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
+                    public void onVisibilityChange(boolean visible) {
+
+                        uiShowing = visible;
+
                     }
-                };
-                asyncTask.execute(new Object[]{0x0});
+                });
 
+        final ImageView dragDownArrow = (ImageView)findViewById(R.id.dragDownArrow);
 
-            }
-        });
-
-
-        final ImageView leftArrow = (ImageView)findViewById(R.id.leftArrow);
-        leftArrow.setAlpha(1.0f);
+        dragDownArrow.setAlpha(1.0f);
         Animation fadeInArrow = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.abc_fade_in);
         fadeInArrow.setStartOffset(250);
-        leftArrow.setAnimation(fadeInArrow);
-        leftArrow.startAnimation(fadeInArrow);
+        dragDownArrow.setAnimation(fadeInArrow);
+        dragDownArrow.startAnimation(fadeInArrow);
 
         final Animation arrowCycle = AnimationUtils.loadAnimation(this,R.anim.arrow_cycle);
         arrowCycle.setAnimationListener(new Animation.AnimationListener() {
@@ -113,7 +118,7 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
 
             @Override
             public void onAnimationEnd(Animation animation) {
-                    leftArrow.startAnimation(arrowCycle);
+                dragDownArrow.startAnimation(arrowCycle);
 
 
             }
@@ -124,8 +129,8 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
             }
         });
 
-        leftArrow.setAnimation(arrowCycle);
-        leftArrow.startAnimation(arrowCycle);
+        dragDownArrow.setAnimation(arrowCycle);
+        dragDownArrow.startAnimation(arrowCycle);
 
 
 
@@ -185,11 +190,18 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
 
     boolean slideView = false;
     boolean animating = false;
+
+    float historicalX;
+    boolean slidingButton = false;
+
+    float arrowCenterOriginY;
+    float bottomOriginY;
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-
         final View targetView = (View)findViewById(R.id.draggableLayout);
         final ImageView dragTarget = (ImageView)findViewById(R.id.dragTarget);
+        final ImageView dragDownArrow = (ImageView) findViewById(R.id.dragDownArrow);
         float deltaY = event.getRawY() - lastY;
 
         Rect targetBounds = new Rect();
@@ -199,39 +211,35 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
             if ((event.getRawY() < targetView.getBottom()) || event.getRawY() > targetView.getTop()) {
                 dragTarget.setImageResource(R.drawable.white1);
                 firstY = event.getRawY();
+                arrowCenterOriginY = dragDownArrow.getY()+dragDownArrow.getMeasuredHeight()/2;
+                bottomOriginY =  targetView.getY() + targetView.getHeight();
                 slideView = true;
 
-            }
-        } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+            }}
+        else if (event.getAction() == MotionEvent.ACTION_MOVE) {
             View mainView = (View) targetView.getParent();
             if (slideView && !animating) {
 
                 targetView.setY(targetView.getY() + deltaY);
                 float targetBottomPos = targetView.getY() + targetView.getHeight();
-                ImageView leftArrow = (ImageView) findViewById(R.id.leftArrow);
-                float distanceToArrow = leftArrow.getY() - targetBottomPos;
-                if (distanceToArrow < 100) {
-                    float alphaPercentage = distanceToArrow * 0.01f;
-                    leftArrow.setAlpha(alphaPercentage);
 
-                } else {
-                    leftArrow.setAlpha(1f);
-                }
+                float spacePercentage =  (arrowCenterOriginY - targetBottomPos) / (arrowCenterOriginY - bottomOriginY);
+
+                dragDownArrow.setAlpha(spacePercentage);
+
 
                 if (targetBottomPos > mainView.getMeasuredHeight()) {
                     testPrint();
                     slideOutTargetView();
                 }
             }
-        } else if (event.getAction() == MotionEvent.ACTION_UP && slideView) {
+        }
+        else if (event.getAction() == MotionEvent.ACTION_UP && slideView) {
 
             dragTarget.setImageResource(R.drawable.white0);
             if ((event.getRawY() - firstY) > 100 && !animating) {
 
-
                 testPrint();
-
-
                 targetView.animate()
                         .translationY(targetView.getHeight())
                         .setInterpolator(new DecelerateInterpolator())
@@ -256,8 +264,8 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
 
                             }
                         });
-
-            } else {
+            }
+            else {
 
 
                 targetView.animate()
@@ -271,7 +279,7 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
 
                             @Override
                             public void onAnimationEnd(Animator animation) {
-
+                                dragDownArrow.setAlpha(1.0f);
 
                             }
 
@@ -294,6 +302,59 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
 
 
         lastY = event.getRawY();
+
+
+        final ImageButton settingsButton = (ImageButton)findViewById(R.id.settingsButton);
+        if (event.getY() < getWindow().getDecorView().getMeasuredHeight()/8) {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                historicalX = event.getX();
+
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                historicalX = 0;
+
+
+            } else if (event.getAction() == MotionEvent.ACTION_MOVE){
+                //Settings button logic
+                if (!slidingButton) {
+
+
+                    if ((historicalX >= settingsButton.getX()) && (historicalX - event.getRawX() > 20)) {
+
+
+
+
+                        Animation slideIn = AnimationUtils.loadAnimation(getBaseContext(), R.anim.slide_in);
+
+                        slideIn.setAnimationListener(new Animation.AnimationListener() {
+                            @Override
+                            public void onAnimationStart(Animation animation) {
+                                slidingButton = true;
+                            }
+
+                            @Override
+                            public void onAnimationEnd(Animation animation) {
+                                settingsButton.setVisibility(View.INVISIBLE);
+                                slidingButton = false;
+                            }
+
+                            @Override
+                            public void onAnimationRepeat(Animation animation) {
+
+                            }
+                        });
+
+                        settingsButton.startAnimation(slideIn);
+                        settingsButton.setVisibility(View.VISIBLE);
+
+                    }
+                }
+            }
+        }
+
+
+
+
+
 
         return super.onTouchEvent(event);
     }
@@ -328,7 +389,7 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
                     @Override
                     public void onAnimationEnd(Animation animation) {
                         animating = false;
-                        ImageView leftArrow = (ImageView)findViewById(R.id.leftArrow);
+                        ImageView leftArrow = (ImageView)findViewById(R.id.dragDownArrow);
                         leftArrow.setAlpha(1.0f);
                         Animation arrowCycle = AnimationUtils.loadAnimation(getApplicationContext(),R.anim.arrow_cycle);
                         leftArrow.setAnimation(arrowCycle);
@@ -361,21 +422,24 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
             protected Object doInBackground(Object[] params) {
 
 
-                byte[] bytes = ReceiptParser.getInstance(getApplicationContext()).testJson(getResources().openRawResource(R.raw.ticketjson));
 
-                if (bytes.length != 0){
+                    byte[] bytes = ReceiptParser.getInstance(getApplicationContext()).testJson(getResources().openRawResource(R.raw.ticketjson));
 
-                    PrintInterface printInterface = new PrintInterface();
+                    if (bytes.length != 0) {
 
-                    try {
-                        printInterface.writeData(bytes);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        PrintInterface printInterface = PrintInterface.getInstance(getBaseContext());
+
+                        try {
+                            printInterface.writeData(bytes);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
                     }
 
+                    return null;
                 }
-                return null;
-            }
+
         };
         asyncTask.execute(new Object[] {0x0});
 
@@ -384,7 +448,7 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
     }
 
 
-    private void showPinDialog(){
+    /*private void showPinDialog(){
 
         FrameLayout frameLayout = (FrameLayout)findViewById(android.R.id.content);
         View.inflate(this, R.layout.pin_dialog, frameLayout);
@@ -397,7 +461,7 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
 
         for (int i = 0;i<10;i++){
 
-            int buttonId = getResources().getIdentifier("button" + String.valueOf(i), "id", "com.nemoq.nqentityv8");
+            int buttonId = getResources().getIdentifier("button" + String.valueOf(i), "id", getPackageName());
 
             final Button button = (Button) findViewById(buttonId);
             button.setOnClickListener(this);
@@ -461,9 +525,19 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
 
 
 
-    }
+    }*/
+
 
     @Override
+    public void onBackPressed() {
+
+        if(uiShowing)
+            hideSystemUI();
+        else
+            super.onBackPressed();
+    }
+
+   /* @Override
     public void onClick(View v) {
 
 
@@ -493,7 +567,7 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
         }
 
 
-    }
+    }*/
 
     @Override
     protected void onDestroy()
@@ -504,7 +578,7 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
         super.onDestroy();
     }
 
-  /*  private void hideSystemUI() {
+    private void hideSystemUI() {
         // Set the IMMERSIVE flag.
         // Set the content to appear under the system bars so that the content
         // doesn't resize when the system bars hide and show.
@@ -527,7 +601,7 @@ public class V8MainActivity extends Activity implements View.OnClickListener{
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
     }
-*/
+
 
 
 }

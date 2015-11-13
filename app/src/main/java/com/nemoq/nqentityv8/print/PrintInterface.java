@@ -1,5 +1,6 @@
 package com.nemoq.nqentityv8.print;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -20,7 +21,7 @@ public class PrintInterface {
 
 
 
-    private PrintInterface printInterface;
+    private static PrintInterface printInterface;
 
     private SerialPort serialPort;
     public OutputStream outputStream;
@@ -45,12 +46,14 @@ public class PrintInterface {
         }
     }
 
-    public void sendData(byte[] bytes) throws IOException {
+    public void writeData(byte[] bytes) throws IOException {
+
         outputStream.write(bytes);
+
 
     }
 
-    public void printData(byte[] bytes){
+    public void writeInBackGround(byte[] bytes){
 
 
         SendDataToPrinterTask sendData = new SendDataToPrinterTask();
@@ -58,7 +61,23 @@ public class PrintInterface {
 
     }
 
-    public PrintInterface(){
+    public static synchronized PrintInterface getInstance(Context ctx){
+
+
+        if (printInterface == null){
+
+
+            printInterface = new PrintInterface(ctx);
+        }
+        return printInterface;
+
+
+
+
+    }
+
+
+    private PrintInterface(Context ctx){
 
 
             try {
@@ -80,11 +99,6 @@ public class PrintInterface {
 
     }
 
-    public void writeData(byte[] bytes) throws IOException {
-
-        sendData(bytes);
-
-    }
 
     public SerialPort getSerialPort() throws SecurityException, IOException, InvalidParameterException
     {
