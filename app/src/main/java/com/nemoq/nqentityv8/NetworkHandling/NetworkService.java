@@ -201,10 +201,10 @@ public class NetworkService extends Service {
         if (networkInfo != null)
         {
             Toast.makeText(this,"No Internet Connection",Toast.LENGTH_SHORT).show();
-            return false;
+            return networkInfo.isConnected();
         }
         else
-            return networkInfo.isConnected();
+            return false;
 
     }
 

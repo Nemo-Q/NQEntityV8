@@ -172,9 +172,12 @@ public class SocketThreadClass implements Runnable{
 
 
                         //How did it go?
-                        if ((!table.get("Content-Type").equals("qticket"))) {
-                            sendMessage(WEIRD_DATA, "Wrong content type");
-                        } else if (table.get("Body").length() == 0) {
+                        if ((table.get("Content-Type").equals("qticket")) || (table.get("Content-Type").equals("application/json"))) {
+                            //All good lets print
+                            sendMessage(RECEIVED_DATA, printBytes);
+                            sendResponse(socket, "Printing");
+                        }
+                        else if (table.get("Body").length() == 0) {
 
                             sendMessage(WEIRD_DATA, "No body");
 
@@ -183,9 +186,8 @@ public class SocketThreadClass implements Runnable{
                             sendMessage(WEIRD_DATA, "Bad Format");
                             sendResponse(socket, "Bad formatting");
                         } else {
-                            //All good lets print
-                            sendMessage(RECEIVED_DATA, printBytes);
-                            sendResponse(socket, "Printing");
+
+                            sendMessage(WEIRD_DATA, "Wrong content type");
                         }
                     }else {
 
