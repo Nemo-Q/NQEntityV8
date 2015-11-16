@@ -198,16 +198,13 @@ public class NetworkService extends Service {
         ConnectivityManager connMgr = (ConnectivityManager)
                 getSystemService(CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        if (networkInfo != null && networkInfo.isConnected()) {
-
-            return true;
-        } else {
-
+        if (networkInfo != null)
+        {
             Toast.makeText(this,"No Internet Connection",Toast.LENGTH_SHORT).show();
             return false;
         }
-
-
+        else
+            return networkInfo.isConnected();
 
     }
 
