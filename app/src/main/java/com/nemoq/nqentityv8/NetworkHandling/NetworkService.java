@@ -273,9 +273,26 @@ public class NetworkService extends Service {
 
     private void print(byte[] printerBytes) throws IOException {
 
+        Object[] paramObject = new Object[]{printerBytes};
+        AsyncTask asyncTask = new AsyncTask() {
+            @Override
+            protected Object doInBackground(Object[] params) {
 
-            PrintInterface printInterface = PrintInterface.getInstance(getBaseContext());
-            printInterface.writeData(printerBytes);
+
+                byte[] bytes = (byte[])params[0];
+                PrintInterface printInterface = PrintInterface.getInstance(getBaseContext());
+                try {
+                    printInterface.writeData(bytes);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                return null;
+            }
+
+        };
+        asyncTask.execute(paramObject);
+
 
 
     }
