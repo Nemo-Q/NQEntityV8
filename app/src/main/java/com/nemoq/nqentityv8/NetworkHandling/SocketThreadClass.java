@@ -59,7 +59,7 @@ public class SocketThreadClass implements Runnable{
 
     private SocketThreadClass(Context ctx,Handler handler){
 
-        messageHandler = handler;
+        this.messageHandler = handler;
         running = true;
         acceptConnections = true;
 
@@ -149,28 +149,16 @@ public class SocketThreadClass implements Runnable{
 
 
                     if (table != null && Integer.parseInt(table.get("Content-Length")) > 0) {
-                        if (table.get("Content-Type").equals("application/json"))
-                            printBytes = ReceiptParser.getInstance(context).JSONToPrinterCommand(table.get("Body"));
-                        else {
-                            printBytes = ReceiptParser.getInstance(context).xmlStringToPrinterCommand(table.get("Body"));
-                            if (printBytes != null){
-                                File file;
-                                String fileName = context.getString(R.string.file_name_qticket);
-                                file = new File(context.getCacheDir(),fileName+".xml");
-                                FileOutputStream outputStream = new FileOutputStream(file);
-
-                                try {
-
-                                    outputStream.write(table.get("Body").getBytes());
-                                    outputStream.close();
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-
-                                }
+                        if (table.get("Content-Type").equals("application/json")) {
+                            try {
+                                printBytes = ReceiptParser.getInstance(context).JSONToPrinterCommand(table.get("Body"));
+                            }
+                            catch (IllegalStateException e){
+                                Log.e("Exception:", e.toString());
+                                sendResponse(socket, "Bad formatting of ticket:" + e.getMessage());
+                                e.printStackTrace();
+                            }
                         }
-
-
                         //How did it go?
                         if ((table.get("Content-Type").equals("qticket")) || (table.get("Content-Type").equals("application/json"))) {
                             //All good lets print
@@ -209,6 +197,7 @@ public class SocketThreadClass implements Runnable{
             Log.e("I/O Exception:", e.toString());
             e.printStackTrace();
         }
+
 
         sendMessage(LISTEN_STOPPED,"Stopped listening for connection");
     }

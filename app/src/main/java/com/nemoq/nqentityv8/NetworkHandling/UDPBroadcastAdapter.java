@@ -7,6 +7,8 @@ import android.net.wifi.WifiManager;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import com.nemoq.nqentityv8.R;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -44,7 +46,7 @@ public class UDPBroadcastAdapter  {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
 
 
-        port = Integer.parseInt(sharedPreferences.getString("udp_port","8000"));
+        port = Integer.parseInt(sharedPreferences.getString(context.getResources().getString(R.string.pref_key_udp_port),"8000"));
         servport = p;
 
 

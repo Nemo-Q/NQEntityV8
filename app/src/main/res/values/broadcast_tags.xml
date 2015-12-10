@@ -7,5 +7,6 @@
     <string name="broadcast_preferences_changed">PREFERENCES_CHANGED</string>
     <string name="broadcast_service_toggle">SERVICE_TOGGLE_RUN</string>
     <string name="broadcast_activity_background">ACTIVITY_BACKGROUND</string>
+    <string name="broadcast_udp_port_changed">UPD_CHANGED</string>
 
 </resources>

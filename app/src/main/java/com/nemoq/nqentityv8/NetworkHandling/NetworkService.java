@@ -20,10 +20,12 @@ import android.widget.Toast;
 
 import com.nemoq.nqentityv8.R;
 import com.nemoq.nqentityv8.UI.V8MainActivity;
+import com.nemoq.nqentityv8.V8Application;
 import com.nemoq.nqentityv8.print.PrintInterface;
 
 import java.io.IOException;
 
+import java.lang.ref.WeakReference;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 public class NetworkService extends Service {
@@ -37,16 +39,27 @@ public class NetworkService extends Service {
 
     public boolean serviceRunning;
 
+    protected Handler threadHandler;
 
     static final int  LISTEN_STARTED = 0;
     static final int  RECEIVED_DATA = 1;
     static final int  LISTEN_STOPPED = 2;
     static final int  WRONG_FORMAT = 3;
 
-    private Handler messageHandler = new Handler(Looper.getMainLooper()){
+    static class MessageHandler extends Handler{
+
+        private static Context context;
+
+        public MessageHandler(Context ctx){
+
+            context =  new WeakReference<Context>(ctx).get();
+
+        }
+
+
         @Override
         public void handleMessage(Message msg) {
-
+            super.handleMessage(msg);
             switch (msg.what){
                 case LISTEN_STARTED:
                     //Started listening
@@ -55,11 +68,12 @@ public class NetworkService extends Service {
                 case RECEIVED_DATA:
                     //Received data from HTTP post
                     byte[] printBytes = (byte[])msg.obj;
+
                     Log.i("NetWorkService:", "Printing");
 
 
                     try {
-                        print(printBytes);
+                        print(context,printBytes);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -75,16 +89,15 @@ public class NetworkService extends Service {
 
             }
 
-            super.handleMessage(msg);
+
         }
-    };
-
-
+    }
 
     public NetworkService() {
 
 
     }
+
 
 
     public class LocalBinder extends Binder {
@@ -98,7 +111,7 @@ public class NetworkService extends Service {
     public void onCreate() {
         notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
 
-
+        threadHandler = new MessageHandler(NetworkService.this);
         // Display a notification about us starting.  We put an icon in the status bar.
         showNotification();
     }
@@ -231,7 +244,7 @@ public class NetworkService extends Service {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         String listenPortPreference = sharedPreferences.getString(getApplicationContext().getString(R.string.pref_key_listen_port), "8080");
         broadCastConnection(Integer.parseInt(listenPortPreference));
-        socketThreadClass = SocketThreadClass.getInstance(this.getApplicationContext(), messageHandler);
+        socketThreadClass = SocketThreadClass.getInstance(NetworkService.this, threadHandler);
         socketThreadInstance = new Thread(socketThreadClass);
 
         socketThreadInstance.start();
@@ -256,12 +269,30 @@ public class NetworkService extends Service {
 
         try {
             udpBroadcastAdapter= new UDPBroadcastAdapter(port,this.getApplicationContext());
+
+            IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(NetworkService.this.getString(R.string.broadcast_udp_port_changed));
+            LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (intent.getAction().equals(getApplicationContext().getString(R.string.broadcast_udp_port_changed))) {
+                        udpBroadcastAdapter.stopBroadcast();
+
+                        udpBroadcastAdapter.startBroadcast();
+                    }
+
+
+                }
+            }, intentFilter);
+
+            udpBroadcastAdapter.startBroadcast();
+
         } catch (SocketException e) {
             Log.e("UDP error:", e.toString());
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
-        udpBroadcastAdapter.startBroadcast();
+
 
 
 
@@ -271,16 +302,17 @@ public class NetworkService extends Service {
 
 
 
-    private void print(byte[] printerBytes) throws IOException {
+    private static void print(Context context,byte[] printerBytes) throws IOException {
 
-        Object[] paramObject = new Object[]{printerBytes};
+        Object[] paramObject = new Object[]{context,printerBytes};
         AsyncTask asyncTask = new AsyncTask() {
             @Override
             protected Object doInBackground(Object[] params) {
 
 
-                byte[] bytes = (byte[])params[0];
-                PrintInterface printInterface = PrintInterface.getInstance(getBaseContext());
+                byte[] bytes = (byte[])params[1];
+                Context context = (Context)params[0];
+                PrintInterface printInterface = PrintInterface.getInstance(context);
                 try {
                     printInterface.writeData(bytes);
                 } catch (IOException e) {

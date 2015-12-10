@@ -26,40 +26,19 @@ public class PrintInterface {
     private SerialPort serialPort;
     public OutputStream outputStream;
     public InputStream inputStream;
-    public byte[] dataToWrite;
 
-    private class SendDataToPrinterTask extends AsyncTask<byte[],Void,Boolean > {
-
-        @Override
-        protected Boolean doInBackground(byte[]... byteData) {
-
-            try {
-
-                outputStream.write(byteData[0]);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-
-            }
-
-            return true;
-        }
-    }
 
     public void writeData(byte[] bytes) throws IOException {
 
+        serialPort = this.getSerialPort();
+
+        OutputStream outputStream =  serialPort.getOutputStream();
         outputStream.write(bytes);
+        this.closeSerialPort();
 
 
     }
 
-    public void writeInBackGround(byte[] bytes){
-
-
-        SendDataToPrinterTask sendData = new SendDataToPrinterTask();
-        sendData.execute(bytes);
-
-    }
 
     public static synchronized PrintInterface getInstance(Context ctx){
 
@@ -71,11 +50,7 @@ public class PrintInterface {
         }
         return printInterface;
 
-
-
-
     }
-
 
     private PrintInterface(Context ctx){
 
@@ -83,8 +58,7 @@ public class PrintInterface {
             try {
 
                 serialPort = this.getSerialPort();
-                outputStream = serialPort.getOutputStream();
-                inputStream = serialPort.getInputStream();
+
 
             }
             catch (SecurityException e) {

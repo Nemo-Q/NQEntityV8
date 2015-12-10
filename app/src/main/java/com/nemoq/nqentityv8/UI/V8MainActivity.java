@@ -54,7 +54,7 @@ public class V8MainActivity extends Activity{
     protected OutputStream mOutputStream;
 
     private static final int HIDER_FLAGS = SystemUiHider.FLAG_HIDE_NAVIGATION;
-    private SystemUiHider mSystemUiHider;
+
     private boolean uiShowing = false;
 
 
@@ -87,7 +87,7 @@ public class V8MainActivity extends Activity{
 
 
 
-        mSystemUiHider = SystemUiHider.getInstance(this, mainView, HIDER_FLAGS);
+        SystemUiHider mSystemUiHider = SystemUiHider.getInstance(this, mainView, HIDER_FLAGS);
         mSystemUiHider.setup();
         mSystemUiHider
                 .setOnVisibilityChangeListener(new SystemUiHider.OnVisibilityChangeListener() {
@@ -147,8 +147,6 @@ public class V8MainActivity extends Activity{
 
 
             });
-
-
 
 
     }

@@ -46,6 +46,7 @@ public class SerialPort
 		}
 
 		mFd = open(device.getAbsolutePath(), baudrate, flags, flowCon);
+
 		if (mFd == null)
 		{
 			throw new IOException();
@@ -65,9 +66,15 @@ public class SerialPort
 	private native static FileDescriptor open(String path, int baudrate, int flags, boolean flowCon);
 	public native void close();
 
-	public OutputStream getOutputStream() {return mFileOutputStream;}
+	public OutputStream getOutputStream() {
+
+		return mFileOutputStream;
+	}
+
 	public InputStream getInputStream()
 	{
 		return mFileInputStream;
 	}
+
+
 }

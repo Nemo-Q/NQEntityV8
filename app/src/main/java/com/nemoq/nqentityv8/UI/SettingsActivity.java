@@ -107,6 +107,19 @@ public class SettingsActivity extends PreferenceActivity {
             else if(preference.getKey().equals(res.getString(R.string.pref_key_boot))){
                 Log.d("Launch app on Boot: ", stringValue);
             }
+            else if(preference.getKey().equals(res.getString(R.string.pref_key_udp_port))){
+                preference.setSummary(stringValue);
+                String oldValue = preference.getSharedPreferences().getString(preference.getKey(), "");
+
+
+                if (!oldValue.equals(stringValue)) {
+                    Intent intent = new Intent(preference.getContext().getApplicationContext(), DispenserWebLayout.class);
+                    intent.setAction(preference.getContext().getString(R.string.broadcast_udp_port_changed));
+                    LocalBroadcastManager.getInstance(preference.getContext()).sendBroadcast(intent);
+
+                }
+
+            }
             else if (preference.getKey().equals(res.getString(R.string.pref_key_web_address)) || preference.getKey().equals(res.getString(R.string.pref_key_web_port))){
                 String oldValue = preference.getSharedPreferences().getString(preference.getKey(), "");
                 preference.setSummary(stringValue);
